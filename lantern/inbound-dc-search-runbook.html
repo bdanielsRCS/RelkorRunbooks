@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INBOUND_Data_Cloud_Search_v2 — Test Runbook</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-elev: #161b22;
+    --bg-card: #1c232c;
+    --border: #30363d;
+    --border-subtle: #21262d;
+    --text: #e6edf3;
+    --text-muted: #7d8590;
+    --accent: #2f81f7;
+    --accent-bright: #58a6ff;
+    --green: #3fb950;
+    --green-bg: #0d2818;
+    --red: #f85149;
+    --red-bg: #2d1417;
+    --yellow: #d29922;
+    --yellow-bg: #2d2511;
+    --purple: #bc8cff;
+    --code-bg: #1f242c;
+    --shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Display", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  /* Sticky progress bar */
+  .progress-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--border-subtle);
+    z-index: 100;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width 0.3s ease;
+    width: 0%;
+  }
+
+  /* Layout */
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 60px 32px 120px;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 32px;
+    margin-bottom: 48px;
+  }
+  .eyebrow {
+    color: var(--accent-bright);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 36px;
+    margin: 0 0 12px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin: 0 0 24px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .meta-pill strong { color: var(--text); }
+
+  /* Quick action panel */
+  .quickstart {
+    background: linear-gradient(135deg, rgba(47,129,247,0.1), rgba(188,140,255,0.05));
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 32px 0;
+  }
+  .quickstart h2 {
+    margin: 0 0 12px;
+    font-size: 18px;
+  }
+  .quickstart p {
+    margin: 0 0 16px;
+    color: var(--text-muted);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: white;
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover {
+    background: var(--accent-bright);
+    transform: translateY(-1px);
+  }
+  .btn-secondary {
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    background: var(--bg-elev);
+  }
+
+  /* Sections */
+  h2.section-heading {
+    font-size: 22px;
+    margin: 56px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-bright);
+  }
+  .section-desc {
+    color: var(--text-muted);
+    margin: 0 0 24px;
+    margin-left: 44px;
+  }
+
+  /* Test cards */
+  .test-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin: 16px 0;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .test-card.passed {
+    border-color: var(--green);
+    background: var(--green-bg);
+  }
+  .test-card.failed {
+    border-color: var(--red);
+    background: var(--red-bg);
+  }
+  .test-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .test-checkbox {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .test-checkbox.checked {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .test-checkbox.checked::after {
+    content: '✓';
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  .test-checkbox.failed {
+    background: var(--red);
+    border-color: var(--red);
+  }
+  .test-checkbox.failed::after {
+    content: '✕';
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+  }
+  .test-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .test-tags {
+    display: flex;
+    gap: 6px;
+  }
+  .tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+  .tag.critical { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+  .tag.important { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
+  .tag.optional { background: var(--bg-elev); color: var(--text-muted); border: 1px solid var(--border); }
+  .test-body {
+    padding: 0 24px 24px;
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 8px;
+    padding-top: 20px;
+  }
+  .step-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: step;
+  }
+  .step-list li {
+    counter-increment: step;
+    padding: 10px 0 10px 36px;
+    position: relative;
+  }
+  .step-list li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 24px;
+    height: 24px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-bright);
+  }
+  .expected {
+    background: var(--bg-elev);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-radius: 6px;
+  }
+  .expected strong {
+    color: var(--accent-bright);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Result buttons */
+  .result-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .result-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .result-btn.pass:hover { background: var(--green); border-color: var(--green); color: white; }
+  .result-btn.fail:hover { background: var(--red); border-color: var(--red); color: white; }
+  .result-btn.reset { color: var(--text-muted); }
+  .result-btn.reset:hover { background: var(--bg-card); }
+  .notes-textarea {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--bg-elev);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 60px;
+  }
+  .notes-textarea::placeholder { color: var(--text-muted); }
+  .notes-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  /* Code & copy */
+  code, .copy-chip {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+  }
+  code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+  }
+  .copy-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: var(--accent-bright);
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .copy-chip:hover {
+    background: var(--bg-elev);
+    border-color: var(--accent);
+  }
+  .copy-chip.copied {
+    background: var(--green-bg);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .copy-icon {
+    width: 12px;
+    height: 12px;
+    opacity: 0.7;
+  }
+
+  /* Tables */
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table.data-table th {
+    background: var(--bg-card);
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  table.data-table td {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  table.data-table tr:first-child td { border-top: none; }
+
+  /* Summary */
+  .summary {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 48px 0;
+    position: sticky;
+    bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .summary-stat {
+    background: var(--bg-elev);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .summary-stat .num {
+    font-size: 24px;
+    font-weight: 700;
+    display: block;
+  }
+  .summary-stat .label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+  .summary-stat.pass .num { color: var(--green); }
+  .summary-stat.fail .num { color: var(--red); }
+  .summary-stat.todo .num { color: var(--yellow); }
+
+  /* Bug report */
+  .bug-report {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin: 32px 0;
+  }
+  .bug-report h3 {
+    margin: 0 0 16px;
+    font-size: 16px;
+  }
+  .bug-report textarea {
+    width: 100%;
+    min-height: 200px;
+    background: var(--code-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Patch log */
+  .patch-log {
+    background: linear-gradient(135deg, rgba(63,185,80,0.08), rgba(47,129,247,0.05));
+    border: 1px solid var(--green);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 24px 0 32px;
+  }
+  .patch-log h3 {
+    margin: 0 0 12px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .patch-log .badge-fixed {
+    background: var(--green);
+    color: var(--bg);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .patch-log ul {
+    margin: 0;
+    padding-left: 20px;
+  }
+  .patch-log li {
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .patch-log li code { font-size: 12px; }
+  .patch-log li .ts {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-left: 6px;
+  }
+
+  /* Reset button */
+  .reset-all {
+    margin-top: 12px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .reset-all:hover { color: var(--red); border-color: var(--red); }
+
+  .footnote {
+    margin-top: 32px;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: center;
+  }
+
+  /* Animation */
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+  .test-checkbox.checked, .test-checkbox.failed {
+    animation: pop 0.3s ease;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
+
+<div class="container">
+
+  <header>
+    <div class="eyebrow">LC-591 · Lantern Care · Sales Cloud (SOPS)</div>
+    <h1>INBOUND_Data_Cloud_Search_v2 Runbook</h1>
+    <p class="subtitle">Manual test pass for the rewired D360 inbound-call search flow, run against staging Data Cloud.</p>
+    <div class="meta-row">
+      <span class="meta-pill">Org · <strong>latStag</strong></span>
+      <span class="meta-pill">Flow · <strong>INBOUND_Data_Cloud_Search_v2</strong></span>
+      <span class="meta-pill">DMO · <strong>member_demographic_tags__dlm</strong></span>
+      <span class="meta-pill">Sandbox · <strong>edhc2020--staging</strong></span>
+    </div>
+  </header>
+
+  <div class="quickstart">
+    <h2>🚀 Quick start</h2>
+    <p>Open the Lantern staging org and jump straight into Flow Builder for the cloned flow. From there, click Debug and step through the test cases below.</p>
+    <a class="btn" href="https://edhc2020--staging.sandbox.my.salesforce-setup.com/lightning/setup/Flows/home" target="_blank" rel="noopener">Open Setup → Flows ↗</a>
+    <a class="btn btn-secondary" href="#test-1">Skip to first test ↓</a>
+  </div>
+
+  <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin: 24px 0;">
+    <h3 style="margin:0 0 12px; color:var(--accent-bright); font-size:15px;">📖 How to use this runbook</h3>
+    <ol style="margin:0; padding-left: 20px; font-size:14px; color:var(--text-muted);">
+      <li style="margin-bottom:6px;">Work the test cards top-to-bottom — each one targets a specific fix from the Jira story (LC-591) or a regression check.</li>
+      <li style="margin-bottom:6px;">Each card has numbered steps, a green "Expected" callout, and three result buttons: <strong style="color:var(--green);">✓ pass</strong>, <strong style="color:var(--red);">✕ fail</strong>, <strong>reset</strong>. Clicking pass/fail highlights the card and updates the summary counter at the bottom.</li>
+      <li style="margin-bottom:6px;">State is saved in your browser — close the tab and come back later, your check-marks and notes will still be there.</li>
+      <li style="margin-bottom:6px;">If a test fails, drop the exact error text into its <em>Notes</em> textarea and the <em>Bug report</em> pad at the bottom. The triage flowchart in §⑤ maps common errors to likely causes.</li>
+      <li>The "Mid-test patches" panel below lists everything that was fixed during earlier test passes — useful context but not required reading if you just want to run the tests.</li>
+    </ol>
+  </div>
+
+  <div class="patch-log">
+    <h3>🛠 Mid-test patches shipped <span class="badge-fixed">live in latStag</span></h3>
+    <p style="margin:0 0 12px; color:var(--text-muted); font-size:13px;">Bugs identified during earlier test passes, already deployed to staging. <strong>Hard-refresh Flow Builder (⌘⇧R) before re-testing.</strong></p>
+    <ul>
+      <li><strong>Datatable <code>keyField</code> rejected by Flow Builder</strong> — server silently rewrote the <code>Id</code> reference to <code>null__NotFound</code> on save. DMOs need a real <code>__c</code> field as the row key. Switched to <code>surgeryPlusMemberId__c</code>. <span class="ts">→ fixed before Test 1</span></li>
+      <li><strong><code>NavigatetoAccount</code> failed when picking an existing member</strong> — used <code>firstSelectedRow.X18_Digit_ID__c</code>, but datatables only expose fields declared in <code>columnReferences</code>, so the value was null. Switched to <code>.Id</code>. <span class="ts">→ fixed during Test 5</span></li>
+      <li><strong>"Results found?" decision routed wrong on no-match</strong> — when only one search lookup fires (decision branching), the others stay <code>null</code>. The <code>Add_All</code> assignment can't merge null collections, so <code>Count_Results</code> aggregated null → returned null → <code>null < 1</code> evaluated false → empty Results Table rendered instead of the "No one matches" screen. Added an <code>IsNull OR LessThan 1</code> condition. <span class="ts">→ fixed during Test 4</span></li>
+      <li><strong>First Name column header showed raw <code>firstName</code></strong> — set <code>hasCustomHeaderLabel: true</code>. Cosmetic. <span class="ts">→ fixed alongside Test 4</span></li>
+      <li><strong>Test 5 still failing — <code>firstSelectedRow.Id</code> rejected too</strong>. Datatable rows only expose fields declared in <code>columnReferences</code>; the keyField doesn't count. Added <code>Id</code> to <code>MatchingActiveMembers.columnReferences</code>. <span class="ts">→ v1.2 patch</span></li>
+      <li><strong>Test 4 still failing — Count = 1 with one null row</strong>. Flow's <code>Add</code> operator treats a null source as a single null entry, polluting the merged collection. Re-introduced a Filter (<code>Filter_Out_Null_Rows</code>, <code>surgeryPlusMemberId__c IsNull = false</code>) between Add_All and Count_Results, and rebound the datatable + Count to read from the Filter output. <span class="ts">→ v1.2 patch</span></li>
+      <li><strong>MatchingActiveMembers columns shifted — Account Name displayed the Id</strong>. Datatable maps display columns to <code>columnReferences</code> by <em>position</em>, not apiName. Adding <code>Id</code> at index 0 pushed every visible column off by one. Moved <code>Id</code> to the end of the field list so display columns align again. <span class="ts">→ v1.3 patch</span></li>
+      <li><strong>Hardcoded RecordType IDs replaced with lookups</strong>. Surgery CarePlan RT (<code>012cV000000VYn1QAG</code>) and Member Person Account RT (<code>012cV000000Q0KjQAK</code>) were hardcoded — would silently break on prod deploy. Added two <code>Get RecordType</code> lookups at flow start (by SObjectType + DeveloperName: Account/Member, CarePlan/Surgery), now referenced as <code>Get_Member_Account_RT.Id</code> and <code>Get_Surgery_CarePlan_RT.Id</code>. <span class="ts">→ v1.4 (#3)</span></li>
+      <li><strong>Input validation gating Next on Search Criteria screen</strong>. Added a <code>validationRule</code> on the EmployeeNumber field that allows submission only if the user picked a row from the top tables OR populated at least one search field. Prevents wasted "no match" runs from empty submits. <span class="ts">→ v1.4 (#9)</span></li>
+      <li><strong>Search architecture overhauled to match the LC-591 search matrix</strong>. Jira LC-591 specifies 4 valid combos: <em>First+Last Name, Last Name+DOB, Last Name+Client, Employee#+Client</em>. Replaced the priority-based single-field branching (which ignored additional inputs after the first match) with 4 focused Get Records lookups, one per combo, driven by a new <code>What_Combo_Is_Valid</code> decision. Each branch assigns its result to a shared <code>var_DC_SearchResults</code> collection. Eliminated the null-pollution issue from the old Add_All pattern and deleted the Filter_Out_Null_Rows workaround. Validation rule also updated to enforce the 4-combo matrix. <span class="ts">→ v1.5 matrix restructure</span></li>
+    </ul>
+    <p style="margin:12px 0 0; padding-top:12px; border-top:1px solid var(--border-subtle); color:var(--text-muted); font-size:13px;">
+      <strong style="color:var(--accent-bright);">⚠️ About debug-mode navigation:</strong> <code>c:navigateToRecord</code> doesn't actually navigate when you run from Flow Builder Debug — there's no Lightning page context. The action shows as completed in the left rail, no error → that's pass. Real navigation only happens on a live record-page run.
+    </p>
+  </div>
+
+  <h2 class="section-heading"><span class="section-num">①</span> Pre-flight</h2>
+  <p class="section-desc">Five seconds of setup so the rest of this is just clicking.</p>
+
+  <div class="test-card" data-test-id="setup-1">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Open Flow Builder for the clone</div>
+      <div class="test-tags"><span class="tag important">setup</span></div>
+    </div>
+    <div class="test-body">
+      <ol class="step-list">
+        <li>Setup → Flows tab is open from the Quick Start above.</li>
+        <li>In the search box, type <code>INBOUND_Data_Cloud_Search_v2</code>.</li>
+        <li>Click the flow <em>label</em> (not the dropdown arrow).</li>
+        <li>Flow Builder opens. <strong>Hard-refresh once</strong> (⌘⇧R / Ctrl+Shift+R) to clear any cached errors from recent patches.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        Canvas loads. No red error banner at the top. The big "Activate" button is enabled in the upper right.
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Looks good</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Hit an error</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes (optional) — anything weird, error text, etc."></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="setup-2">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Launch the Debug panel</div>
+      <div class="test-tags"><span class="tag important">setup</span></div>
+    </div>
+    <div class="test-body">
+      <ol class="step-list">
+        <li>Top-right of the Flow Builder canvas → click <strong>Debug</strong>.</li>
+        <li>Right-side panel slides in.</li>
+        <li>Check ☑ <strong>"Show details of what's executed"</strong> — this gives you the play-by-play in the left rail after the run.</li>
+        <li>Leave "Run the latest version" checked.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        You see a <code>recordId</code> input field with a record-picker (the flow takes a VoiceCall as input).
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Panel ready</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Issue</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <h2 class="section-heading"><span class="section-num">②</span> Test data</h2>
+  <p class="section-desc">All real records in <code>latStag</code> as of right now. Click any pill to copy.</p>
+
+  <h3 style="margin-top:24px">VoiceCall records (input to the flow)</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Name (search this)</th>
+        <th>From Phone</th>
+        <th>Type</th>
+        <th>Use for</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="copy-chip" onclick="copyToClipboard(this, 'VC-00000191')">VC-00000191 📋</span></td>
+        <td>9132385092</td>
+        <td>Inbound</td>
+        <td><strong>Default — matches Ashok Ramineni</strong></td>
+      </tr>
+      <tr>
+        <td><span class="copy-chip" onclick="copyToClipboard(this, 'VC-00000189')">VC-00000189 📋</span></td>
+        <td>9132385092</td>
+        <td>Inbound</td>
+        <td>Same phone, different call</td>
+      </tr>
+      <tr>
+        <td><span class="copy-chip" onclick="copyToClipboard(this, 'VC-00000187')">VC-00000187 📋</span></td>
+        <td>7753044687</td>
+        <td>Inbound</td>
+        <td>Different phone — likely no match</td>
+      </tr>
+      <tr>
+        <td><span class="copy-chip" onclick="copyToClipboard(this, 'VC-00000190')">VC-00000190 📋</span></td>
+        <td>(email — bad data)</td>
+        <td>Outbound</td>
+        <td>"No match" path</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>DMO members (search inside the flow's Search All Members section)</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>DOB</th>
+        <th>Client</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="copy-chip" onclick="copyToClipboard(this, 'Becky')">Becky 📋</span></td><td><span class="copy-chip" onclick="copyToClipboard(this, 'Blair')">Blair 📋</span></td><td>1993-03-16</td><td>Brookdale Senior Living</td></tr>
+      <tr><td>Ry-Guy</td><td>Smith</td><td>1993-03-16</td><td>State of Florida</td></tr>
+      <tr><td>Seymour</td><td>Butts</td><td>1993-03-16</td><td>Southwest Airlines</td></tr>
+      <tr><td>Kevin</td><td>Hawk</td><td>1993-03-16</td><td>Lincoln Financial Group</td></tr>
+      <tr><td>Spencer21</td><td>Bard21</td><td>1993-03-16</td><td>State Farm</td></tr>
+      <tr><td>Ophelia</td><td>Pane</td><td>1993-03-16</td><td>Lincoln Financial Group</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-heading"><span class="section-num">③</span> Test cases</h2>
+  <p class="section-desc">Run them in order. Each one targets a specific fix from the rewrite.</p>
+
+  <div class="test-card" id="test-1" data-test-id="test-1">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 1 · Phone-based pre-match (Account hit)</div>
+      <div class="test-tags"><span class="tag critical">CORE</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Proves the <code>recordId.EndUser.Name → recordId.FromPhoneNumber</code> fix. The original v21 was looking for the user's name in the Phone field, so this match never happened.</p>
+      <ol class="step-list">
+        <li>In Debug, the <code>recordId</code> picker → search for <span class="copy-chip" onclick="copyToClipboard(this, 'VC-00000191')">VC-00000191 📋</span> and select it.</li>
+        <li>Click <strong>Run</strong>.</li>
+        <li>Wait for the screen to render.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        Top of screen shows <strong>Matching Active Members</strong> with one row: <em>Ashok Ramineni · Mar 10, 1993</em>. The Search All Members section is below it.
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Ashok shows</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ No match / wrong data</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-2">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 2 · Combo 4 — First Name + Last Name</div>
+      <div class="test-tags"><span class="tag critical">CORE</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Proves the 4th combo (First + Last). Also confirms DMO retype still works after the matrix restructure.</p>
+      <ol class="step-list">
+        <li>On the Search Criteria screen, scroll to <strong>Search All Members</strong>.</li>
+        <li>Enter First Name: <span class="copy-chip" onclick="copyToClipboard(this, 'Becky')">Becky 📋</span> and Last Name: <span class="copy-chip" onclick="copyToClipboard(this, 'Blair')">Blair 📋</span></li>
+        <li>Leave everything else blank.</li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        Debug rail shows: <code>Decision: What Search Combo Is Valid?</code> → "First Name + Last Name" rule fires → <code>Get Records: Get by First + Last Name</code> returns 1 row → <code>Assignment: Set Search Results (First + Last Name)</code>. Results Table shows Becky Blair.
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Row returned</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Issue</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-3">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 3 · Combo 2 — Last Name + DOB</div>
+      <div class="test-tags"><span class="tag critical">CORE</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Proves the Last Name + DOB combo. DOB alone is NOT a valid search (validation will block it).</p>
+      <ol class="step-list">
+        <li>Re-run Debug with VC-00000191 if you fell off the flow.</li>
+        <li>Enter Last Name: <span class="copy-chip" onclick="copyToClipboard(this, 'Blair')">Blair 📋</span></li>
+        <li>Enter Date Of Birth: <strong>3/16/1993</strong></li>
+        <li>Leave everything else blank.</li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        "Last Name + DOB" rule fires (priority 2 — Emp+Client not satisfied). Returns 1 row (Becky Blair). If you change Last Name to blank and keep DOB, validation should BLOCK you.
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Returns + DOB-only blocks</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Issue</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-3b">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 3b · Combo 3 — Last Name + Client</div>
+      <div class="test-tags"><span class="tag important">matrix</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Proves the Last Name + Client combo.</p>
+      <ol class="step-list">
+        <li>Enter Last Name: <span class="copy-chip" onclick="copyToClipboard(this, 'Blair')">Blair 📋</span> and Client: <span class="copy-chip" onclick="copyToClipboard(this, 'Brookdale Senior Living')">Brookdale Senior Living 📋</span></li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        "Last Name + Client" rule fires. Returns Becky Blair. Note: this rule is priority 3 — if user also populates DOB, "Last Name + DOB" (priority 2) wins instead.
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Row returned</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Issue</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-3c">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 3c · Combo 1 — Employee# + Client</div>
+      <div class="test-tags"><span class="tag important">matrix</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Proves the highest-priority combo. If user enters Emp+Client AND also other valid combos, Emp+Client wins (priority 1 — most specific).</p>
+      <ol class="step-list">
+        <li>You'll need an Employee ID that's populated. Query one:
+<pre style="background:var(--code-bg); padding:10px; border-radius:6px; overflow:auto; margin-top:6px;"><code>sf data query --target-org latStag \
+  --query "SELECT firstName__c, lastName__c, employeeId__c, clientName__c FROM member_demographic_tags__dlm WHERE employeeId__c != null LIMIT 3"</code></pre>
+        </li>
+        <li>Use the returned Emp# and Client Name values as inputs.</li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        "Emp# + Client" rule fires (priority 1). Returns matching row(s).
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Correctly prioritized</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Issue</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-4">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 4 · No-match path (404 screen)</div>
+      <div class="test-tags"><span class="tag important">patched mid-test</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Proves the count → decision → "no results" branch wires up correctly with the new collection.</p>
+      <ol class="step-list">
+        <li>Re-run Debug with VC-00000191 if you fell off the flow.</li>
+        <li>In Search All Members enter:
+          <ul style="margin-top:8px">
+            <li>First Name: <code>Zzz</code></li>
+            <li>Last Name: <code>Nobody</code></li>
+          </ul>
+        </li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        Lands on a screen that says: <em>"No one matches those criteria. Please try again."</em>
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Got 404 screen</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Wrong path</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-5">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 5 · Account-selection navigation</div>
+      <div class="test-tags"><span class="tag important">patched mid-test</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Tests the <code>NavigatetoAccount</code> action. We just patched it from <code>X18_Digit_ID__c</code> (which wasn't in the datatable's column refs and came back null) to <code>.Id</code>.</p>
+      <ol class="step-list">
+        <li>Re-run Debug with VC-00000191.</li>
+        <li>On the Search Criteria screen, <strong>check the box</strong> next to Ashok Ramineni in the Matching Active Members table.</li>
+        <li>Don't fill in any of the search fields below.</li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected (in Debug mode)</strong>
+        Flow ends without a red validation error. Left rail shows <code>Action: NavigatetoAccount</code> with no error message. <strong>Important:</strong> the page will NOT actually navigate to Ashok's Account record — debug mode can't execute Lightning navigation actions. Pass = no error in the rail. Real navigation only fires on a live record-page run.
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ No validation error</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Same error / new error</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-6">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 6 · Lead create from DMO row</div>
+      <div class="test-tags"><span class="tag optional">downstream</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Tests the default branch of "What are we doing?" → <code>Create_Lead</code> → reads <code>firstName__c</code>, <code>lastName__c</code>, <code>preferredEmail__c</code>, <code>preferredPhone__c</code> off the selected DMO row. If field-level access is wrong this will fail with a DML error.</p>
+      <ol class="step-list">
+        <li>Re-run Debug with VC-00000191.</li>
+        <li>On Search Criteria, search by Becky / Blair (or any name match).</li>
+        <li>On the Results Table, check the box next to Becky's row.</li>
+        <li>Pick the <strong>"Project Michelin"</strong> radio button (default → routes to Create_Lead).</li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        Lands on Success_Screen with "Record created successfully." Debug rail shows <code>Create_Lead</code> succeeded. <em>A real Lead is created in staging</em> — clean it up after if you don't want it.
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Lead created</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ DML / null field error</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-7">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 7 · Validation gate (empty submit)</div>
+      <div class="test-tags"><span class="tag important">v1.4</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Confirms the new validation rule on EmployeeNumber prevents blank submissions and prompts the user to either pick a row or fill in search criteria.</p>
+      <ol class="step-list">
+        <li>Re-run Debug with VC-00000191.</li>
+        <li>Don't tick Ashok in the Matching Active Members table.</li>
+        <li>Leave all 5 fields in Search All Members empty (First Name, Last Name, DOB, Client, Emp#).</li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        Validation error appears on the EmployeeNumber field: <em>"Pick a matching member from the table above, OR enter one of these minimum combos: First Name + Last Name, Last Name + DOB, Last Name + Client, or Employee# + Client."</em> Flow does NOT advance past this screen. Bonus: populate only DOB (no Last Name) → validation still blocks (DOB alone isn't a valid combo).
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Validation fired</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Flow advanced anyway</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <div class="test-card" data-test-id="test-8">
+    <div class="test-header">
+      <div class="test-checkbox" onclick="toggleCheck(this)"></div>
+      <div class="test-title">Test 8 · Validation passes when row is selected only</div>
+      <div class="test-tags"><span class="tag important">v1.4</span></div>
+    </div>
+    <div class="test-body">
+      <p><strong>Why:</strong> Confirms the validation rule lets users through if they picked a row from the top, even with no search fields populated.</p>
+      <ol class="step-list">
+        <li>Re-run Debug with VC-00000191.</li>
+        <li>Tick Ashok in the Matching Active Members table.</li>
+        <li>Leave all 5 search fields empty.</li>
+        <li>Click <strong>Next</strong>.</li>
+      </ol>
+      <div class="expected">
+        <strong>Expected</strong>
+        No validation error. Flow proceeds to NavigatetoAccount (which won't actually navigate in debug — see Test 5 caveat).
+      </div>
+      <div class="result-buttons">
+        <button class="result-btn pass" onclick="markResult(this, 'pass')">✓ Bypassed validation correctly</button>
+        <button class="result-btn fail" onclick="markResult(this, 'fail')">✕ Validation blocked</button>
+        <button class="result-btn reset" onclick="markResult(this, 'reset')">reset</button>
+      </div>
+      <textarea class="notes-textarea" placeholder="Notes"></textarea>
+    </div>
+  </div>
+
+  <h2 class="section-heading"><span class="section-num">④</span> Known issues to NOT panic about</h2>
+  <p class="section-desc">Things still in the flow that we deliberately left for the next iteration.</p>
+
+  <table class="data-table">
+    <thead>
+      <tr><th>Element</th><th>Issue</th><th>Why we punted</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>Create_Member_Person_Account</code></td>
+        <td>Hardcoded <em>Ophelia Pane</em> / Lincoln Financial / DOB</td>
+        <td>Demo placeholder — spec finalization needed to wire to row selection</td>
+      </tr>
+      <tr>
+        <td><code>Copy_1_of_Create_Member_Person_Account</code></td>
+        <td>Hardcoded <em>Jason Montgomery</em> / State Farm</td>
+        <td>Same — demo data</td>
+      </tr>
+      <tr style="opacity:0.5; text-decoration:line-through;">
+        <td>RecordType IDs</td>
+        <td>Hardcoded staging IDs <code>012cV…</code></td>
+        <td><strong>RESOLVED in v1.4</strong> — now resolved via Get RecordType lookups by DeveloperName</td>
+      </tr>
+      <tr>
+        <td><code>Phone_Number</code> input field</td>
+        <td>Still on the screen, just hidden via stale visibility rule</td>
+        <td>Cosmetic — LC-591 only said remove from search, not from screen</td>
+      </tr>
+      <tr style="opacity:0.5; text-decoration:line-through;">
+        <td>Decision branching</td>
+        <td>Only ONE search runs (DOB &gt; Name &gt; Employee priority)</td>
+        <td><strong>RESOLVED in v1.5</strong> — matrix implemented as 4 focused per-combo lookups, priority-ordered most-specific first</td>
+      </tr>
+      <tr>
+        <td>Phone normalization</td>
+        <td>Get_Accounts compares <code>FromPhoneNumber</code> as-is to Account.Phone — formats may differ</td>
+        <td>Out of LC-591 scope; works on Ashok because both are <code>9132385092</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-heading"><span class="section-num">⑤</span> If something breaks</h2>
+  <p class="section-desc">Triage flow.</p>
+
+  <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:24px; margin:16px 0;">
+    <strong style="color:var(--accent-bright)">Step 1 — Read the actual error.</strong>
+    <p style="margin:8px 0 16px">In Debug, scroll the left rail to find the red "Error element …" entry. Note the element name AND the exact message.</p>
+
+    <strong style="color:var(--accent-bright)">Step 2 — Check what kind of error.</strong>
+    <ul style="margin:8px 0 16px">
+      <li><strong>"Invalid reference … null__NotFound"</strong> → a field reference was rewritten by the server because it's not valid on the target object. Same root cause as the keyField bug we hit. Tell me the element + field.</li>
+      <li><strong>"FIELD_CUSTOM_VALIDATION_EXCEPTION"</strong> → an org validation rule blocked a record create. Probably the hardcoded test data hitting a rule. Note which rule.</li>
+      <li><strong>"You don't have access"</strong> → the running user lacks read on a DMO field or object. Check Profile/PermSet.</li>
+      <li><strong>"DUPLICATE_VALUE"</strong> → trying to create a Lead/Account that already exists. Re-test with different inputs or clean up.</li>
+    </ul>
+
+    <strong style="color:var(--accent-bright)">Step 3 — Send back.</strong>
+    <p style="margin:8px 0">Screenshot the Debug rail (especially the failing element + the value of every variable at that point). Drop it in the chat — fastest path to a fix.</p>
+  </div>
+
+  <h2 class="section-heading"><span class="section-num">⑥</span> Bug report scratch pad</h2>
+  <p class="section-desc">Use this to capture anything you hit. Saves locally as you type.</p>
+  <div class="bug-report">
+    <h3>Drop notes / errors here</h3>
+    <textarea id="bugReport" placeholder="Test 2 — name search — got [paste error]&#10;Test 5 — Account nav — worked&#10;Test 6 — Lead create — DML failed because…"></textarea>
+  </div>
+
+  <div class="summary" id="summary">
+    <h3 style="margin:0">📊 Run summary</h3>
+    <div class="summary-grid">
+      <div class="summary-stat pass"><span class="num" id="statPass">0</span><span class="label">Passed</span></div>
+      <div class="summary-stat fail"><span class="num" id="statFail">0</span><span class="label">Failed</span></div>
+      <div class="summary-stat todo"><span class="num" id="statTodo">12</span><span class="label">Todo</span></div>
+      <div class="summary-stat"><span class="num" id="statTotal">12</span><span class="label">Total</span></div>
+    </div>
+    <button class="reset-all" onclick="resetAll()">Reset all checkboxes & notes</button>
+  </div>
+
+  <p class="footnote">
+    Lantern Care D360 · LC-591 · Runbook last updated 2026-04-24<br>
+    Current version <strong>v1.5</strong> — 10 patches landed across iterative test passes; search architecture now implements the LC-591 4-combo matrix.<br>
+    All test data and IDs verified live against <code>latStag</code>.
+  </p>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'lc591_runbook_state';
+
+function getState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+  catch { return {}; }
+}
+function saveState(state) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function toggleCheck(el) {
+  const card = el.closest('.test-card');
+  const wasChecked = el.classList.contains('checked');
+  document.querySelectorAll('.test-checkbox').forEach(c => {});
+  if (wasChecked) {
+    el.classList.remove('checked', 'failed');
+    card.classList.remove('passed', 'failed');
+    updateState(card.dataset.testId, null);
+  } else {
+    el.classList.add('checked');
+    el.classList.remove('failed');
+    card.classList.add('passed');
+    card.classList.remove('failed');
+    updateState(card.dataset.testId, 'pass');
+  }
+  updateSummary();
+}
+
+function markResult(btn, type) {
+  const card = btn.closest('.test-card');
+  const cb = card.querySelector('.test-checkbox');
+  if (type === 'reset') {
+    cb.classList.remove('checked', 'failed');
+    card.classList.remove('passed', 'failed');
+    updateState(card.dataset.testId, null);
+  } else if (type === 'pass') {
+    cb.classList.add('checked');
+    cb.classList.remove('failed');
+    card.classList.add('passed');
+    card.classList.remove('failed');
+    updateState(card.dataset.testId, 'pass');
+  } else if (type === 'fail') {
+    cb.classList.add('failed');
+    cb.classList.remove('checked');
+    card.classList.add('failed');
+    card.classList.remove('passed');
+    updateState(card.dataset.testId, 'fail');
+  }
+  updateSummary();
+}
+
+function updateState(testId, result) {
+  const state = getState();
+  if (result === null) {
+    delete state[testId];
+  } else {
+    state[testId] = { result, ts: Date.now() };
+  }
+  saveState(state);
+}
+
+function copyToClipboard(el, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = el.innerHTML;
+    el.classList.add('copied');
+    el.innerHTML = '✓ copied';
+    setTimeout(() => {
+      el.classList.remove('copied');
+      el.innerHTML = orig;
+    }, 1200);
+  });
+}
+
+function updateSummary() {
+  const state = getState();
+  let pass = 0, fail = 0;
+  Object.values(state).forEach(s => {
+    if (s.result === 'pass') pass++;
+    else if (s.result === 'fail') fail++;
+  });
+  const total = document.querySelectorAll('.test-card').length;
+  const todo = total - pass - fail;
+  document.getElementById('statPass').textContent = pass;
+  document.getElementById('statFail').textContent = fail;
+  document.getElementById('statTodo').textContent = todo;
+  document.getElementById('statTotal').textContent = total;
+  const pct = total ? ((pass + fail) / total * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function resetAll() {
+  if (!confirm('Wipe all check-marks and notes? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY + '_notes');
+  localStorage.removeItem(STORAGE_KEY + '_bug');
+  document.querySelectorAll('.test-checkbox').forEach(cb => cb.classList.remove('checked', 'failed'));
+  document.querySelectorAll('.test-card').forEach(c => c.classList.remove('passed', 'failed'));
+  document.querySelectorAll('.notes-textarea').forEach(t => t.value = '');
+  document.getElementById('bugReport').value = '';
+  updateSummary();
+}
+
+// Restore state on page load
+function restore() {
+  const state = getState();
+  document.querySelectorAll('.test-card').forEach(card => {
+    const s = state[card.dataset.testId];
+    if (!s) return;
+    const cb = card.querySelector('.test-checkbox');
+    if (s.result === 'pass') {
+      cb.classList.add('checked');
+      card.classList.add('passed');
+    } else if (s.result === 'fail') {
+      cb.classList.add('failed');
+      card.classList.add('failed');
+    }
+  });
+  // Restore notes
+  const notes = JSON.parse(localStorage.getItem(STORAGE_KEY + '_notes') || '{}');
+  document.querySelectorAll('.test-card').forEach(card => {
+    const ta = card.querySelector('.notes-textarea');
+    if (ta && notes[card.dataset.testId]) ta.value = notes[card.dataset.testId];
+  });
+  const bug = localStorage.getItem(STORAGE_KEY + '_bug') || '';
+  document.getElementById('bugReport').value = bug;
+  updateSummary();
+}
+
+// Persist notes on change
+document.addEventListener('input', e => {
+  if (e.target.classList.contains('notes-textarea')) {
+    const card = e.target.closest('.test-card');
+    const notes = JSON.parse(localStorage.getItem(STORAGE_KEY + '_notes') || '{}');
+    notes[card.dataset.testId] = e.target.value;
+    localStorage.setItem(STORAGE_KEY + '_notes', JSON.stringify(notes));
+  }
+  if (e.target.id === 'bugReport') {
+    localStorage.setItem(STORAGE_KEY + '_bug', e.target.value);
+  }
+});
+
+restore();
+</script>
+
+</body>
+</html>
