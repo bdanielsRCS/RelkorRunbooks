@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TH-489 — Unassigned Encounter
+Restriction — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+  .toc-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 18px 0 28px;
+    font-size: 14px;
+  }
+  .toc-box strong { color: var(--accent-bright); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <a href="./">Titan Health</a>
+    <span class="nav-sep">›</span>
+    <span>TH-489 — Unassigned Encounter Restriction</span>
+  </nav>
+
+  <article class="doc-body">
+<h1 id="th-489--notion-section-content">TH-489 — Notion Section
+Content</h1>
+<p>Paste each section below into the matching toggle on the TH-489
+Notion page.</p>
+<hr />
+<h2 id="task-description--reference-documentation">Task Description
+&amp; Reference Documentation</h2>
+<h3 id="current-state">Current State</h3>
+<ul>
+<li>Case OWD is <strong>Private</strong> — no user sees any Case by
+default</li>
+<li>ZB workflow already restricts auditors from seeing encounters with
+Status Code = Unassigned (existing behavior this story replicates for
+ARR)</li>
+<li>ARR encounters imported into the system currently have no
+queue-based workflow — once sharing rules (TH-486) grant access, all
+encounters for a client are visible to that client's group regardless of
+assignment status</li>
+</ul>
+<h3 id="ideal-state">Ideal State</h3>
+<ul>
+<li>Unassigned ARR encounters are <strong>invisible to
+collectors</strong> — they cannot see them in list views, search
+results, or via direct link</li>
+<li>Only ARR supervisors can see unassigned encounters and assign them
+to collectors</li>
+<li>Once a supervisor assigns an encounter to a collector, the collector
+gains visibility</li>
+<li>This mirrors the existing ZB restriction where auditors cannot see
+unassigned encounters</li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li>Implementation stories:
+<code>Titan-Health-R3-Implementation-Stories.html</code> (Story 2)</li>
+<li>Sharing architecture review transcript:
+<code>Titan Health Sharing Arch Review.txt</code></li>
+<li><strong>Dependency:</strong> TH-486 must be implemented first
+(public groups and sharing rules)</li>
+</ul>
+<hr />
+<h2 id="technical-configuration-notes">Technical Configuration
+Notes</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />TH-486 complete —
+specifically:</label>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>ARR - Supervisors</code>
+public group created and populated</label></li>
+<li><label><input type="checkbox" />Client-specific sharing rules
+active</label></li>
+<li><label><input type="checkbox" />Permission sets
+assigned</label></li>
+</ul></li>
+</ul>
+<h3 id="1-create-arr-queues">1. Create ARR Queues</h3>
+<p>Create 2 queues in Setup &gt; Queues:</p>
+<table>
+<thead>
+<tr>
+<th>Queue Label</th>
+<th>API Name</th>
+<th>Supported Objects</th>
+<th>Queue Members</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR - Unassigned</td>
+<td>ARR_Unassigned</td>
+<td>Case</td>
+<td>ARR - Supervisors group only</td>
+</tr>
+<tr>
+<td>ARR - Collections</td>
+<td>ARR_Collections</td>
+<td>Case</td>
+<td>ARR - Supervisors group only</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Only the <strong>ARR - Supervisors</strong> public group should be a
+queue member — do NOT add individual collectors</li>
+<li>Uncheck "Send Email to Members" (optional per notification
+preferences)</li>
+</ul>
+<h3 id="how-it-works">How It Works</h3>
+<ol type="1">
+<li>Encounters are imported and assigned to the <strong>ARR -
+Unassigned</strong> queue</li>
+<li>Queue ownership + Private OWD = only queue members (supervisors) can
+see them</li>
+<li>Supervisor reviews and assigns encounter to a collector (changes
+owner from queue to user)</li>
+<li>Once user-owned, the collector gains visibility through their
+client-specific sharing rule (TH-486)</li>
+<li>Encounters moved to collections go to the <strong>ARR -
+Collections</strong> queue — again only visible to supervisors until
+reassigned</li>
+</ol>
+<p>Collectors never see the queue and never see unassigned encounters.
+They only see encounters explicitly assigned to them (or to other users
+in their client group via sharing rules).</p>
+<hr />
+<h2 id="technical-acceptance-criteria">Technical Acceptance
+Criteria</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />Both queues exist and support Case
+objects</label></li>
+<li><label><input type="checkbox" />Only the ARR - Supervisors group is
+a member of each queue — no individual collectors</label></li>
+<li><label><input type="checkbox" />ARR collector cannot see queue-owned
+(unassigned) encounters in list views, search, or via direct
+link</label></li>
+<li><label><input type="checkbox" />ARR supervisor can see queue-owned
+encounters</label></li>
+<li><label><input type="checkbox" />When a supervisor changes owner from
+queue to a collector, the collector gains visibility</label></li>
+<li><label><input type="checkbox" />Collector's list view (ARR - My
+Encounters) does not show queue-owned records</label></li>
+<li><label><input type="checkbox" />Supervisor's list views (ARR -
+Unassigned Queue, ARR - Collections Queue) show queue-owned
+records</label></li>
+</ul>
+<h3 id="validation-queries">Validation Queries</h3>
+<p>As an <strong>ARR Collector</strong> — this should return
+<strong>0</strong>:</p>
+<pre><code>SELECT COUNT() FROM Case WHERE LOB__c = &#39;ARR&#39; AND Owner.Type = &#39;Queue&#39;</code></pre>
+<p>As an <strong>ARR Supervisor</strong> — this should return
+<strong>&gt; 0</strong>:</p>
+<pre><code>SELECT COUNT() FROM Case WHERE LOB__c = &#39;ARR&#39; AND Owner.Type = &#39;Queue&#39;</code></pre>
+<hr />
+<h2 id="metadata-components-for-deployment">Metadata Components for
+Deployment</h2>
+<ul>
+<li>2 Queues (ARR_Unassigned, ARR_Collections)</li>
+<li>Queue membership configuration (ARR - Supervisors group)</li>
+</ul>
+  </article>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

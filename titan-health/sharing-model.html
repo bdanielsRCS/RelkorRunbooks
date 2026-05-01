@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sharing Model — Solution Design — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+  .toc-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 18px 0 28px;
+    font-size: 14px;
+  }
+  .toc-box strong { color: var(--accent-bright); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <a href="./">Titan Health</a>
+    <span class="nav-sep">›</span>
+    <span>Sharing Model — Solution Design</span>
+  </nav>
+
+  <article class="doc-body">
+<h1 id="titan-health--release-3-sharing-model-solution">Titan Health —
+Release 3 Sharing Model Solution</h1>
+<p><strong>Prepared by:</strong> Relkor Cloud Solutions LLC
+<strong>Date:</strong> 2026-04-01 <strong>Status:</strong> Draft — For
+SA Review <strong>Scratch Org:</strong> <code>titan-r3-poc</code>
+(expires 2026-04-28)</p>
+<hr />
+<h2 id="1-business-problem">1. Business Problem</h2>
+<p>Titan Health operates two Lines of Business (LOBs) on a single
+Salesforce org:</p>
+<ul>
+<li><strong>Zero Balance (ZB)</strong> — existing, live in
+production</li>
+<li><strong>Accounts Receivable Recovery (ARR)</strong> — new, being
+added in Release 3</li>
+</ul>
+<p>Both LOBs use the Case object to represent Encounters. The org
+currently has a <strong>Private</strong> OWD on Case with criteria-based
+sharing rules that open access for ZB users.</p>
+<p>Release 3 introduces ARR with a critical new constraint:
+<strong>client-level data isolation</strong>. ARR Encounters are
+segmented by hospital client (e.g., Northwestern Memorial, Atlantic Blue
+Cross). Users should only see Encounters for the clients they are
+assigned to.</p>
+<h3 id="key-constraints-from-stakeholders">Key Constraints (from
+stakeholders)</h3>
+<table>
+<thead>
+<tr>
+<th>Constraint</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Users can work <strong>both</strong> LOBs (ARR collector + ZB
+collector)</td>
+<td>John — "users can have multiple assignments"</td>
+</tr>
+<tr>
+<td><strong>Keep existing roles as-is</strong> — no new roles</td>
+<td>John — "these are the roles, each one is assigned to a line of
+business"</td>
+</tr>
+<tr>
+<td><strong>Declarative first</strong> — no Apex unless absolutely
+necessary</td>
+<td>Al — "we try to do everything declarative as much as possible"</td>
+</tr>
+<tr>
+<td>No dedicated engineering resources for ongoing maintenance</td>
+<td>Al — "I don't consider myself a software engineer... purely
+declarative"</td>
+</tr>
+<tr>
+<td>Delegated admins already manage Public Group membership</td>
+<td>Al — "we have power users that have the ability to add users to
+groups"</td>
+</tr>
+<tr>
+<td>4.2–4.3M Case records in the org</td>
+<td>Al — data skew concern</td>
+</tr>
+<tr>
+<td>Supervisors are client-restricted by default</td>
+<td>Al — "supervisor comes in, can just work Northwestern. Then you have
+to add them on to other clients"</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-requirements-summary-sa-review-items">2. Requirements Summary
+(SA Review Items)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Requirement</th>
+<th>Core Problem</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ARR users can't see ZB, vice versa</td>
+<td>LOB isolation</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Collectors only see their assigned client's ARR encounters</td>
+<td>Client isolation</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Supervisors only see their assigned client's ARR encounters</td>
+<td>Client isolation</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Unassigned encounters hidden from Collectors</td>
+<td>Queue visibility</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Admin configures which users access which LOB</td>
+<td>LOB assignment</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Admin configures which users are assigned to which clients</td>
+<td>Client assignment</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Public Groups for ARR roles</td>
+<td>Access infrastructure</td>
+</tr>
+<tr>
+<td>8</td>
+<td>List views scoped by LOB</td>
+<td>UI visibility</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Payor restricted by Client + LOB on Encounters</td>
+<td>Data integrity</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Root Cause values restricted by LOB</td>
+<td>Data integrity</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-options-evaluated">3. Options Evaluated</h2>
+<h3 id="option-a-role-hierarchy-segmentation">Option A: Role Hierarchy
+Segmentation</h3>
+<p>Create ARR-specific roles per client (e.g.,
+<code>ARR_Collector_NWM</code>, <code>ARR_Collector_ABC</code>). Role
+hierarchy naturally controls visibility.</p>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clean, well-understood model</td>
+<td><strong>Users can only have ONE role</strong> — kills multi-client
+assignment</td>
+</tr>
+<tr>
+<td>Built-in upward visibility</td>
+<td>Requires new roles (stakeholder said no)</td>
+</tr>
+<tr>
+<td>No Apex needed</td>
+<td>Doesn't support users spanning LOBs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict: Not viable.</strong> John explicitly stated users
+can work multiple clients and both LOBs. A user can only hold one
+role.</p>
+<hr />
+<h3 id="option-b-restriction-rules">Option B: Restriction Rules</h3>
+<p>Use Restriction Rules to hide records even when broader sharing rules
+grant access. E.g., "If user LOB != record LOB, restrict."</p>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clean subtraction from existing access</td>
+<td>Only supports simple field-level criteria</td>
+</tr>
+<tr>
+<td>No code</td>
+<td>Can't do client-level matching (no "User.Client IN Record.Client"
+logic)</td>
+</tr>
+<tr>
+<td>Works alongside sharing rules</td>
+<td>Limited to specific editions</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict: Partially viable.</strong> Could handle LOB
+isolation (hide ZB from ARR users), but <strong>cannot solve
+client-level isolation</strong> — there's no way to match a user's
+assigned clients against the record's client field in a Restriction
+Rule. Would need to be combined with another approach.</p>
+<hr />
+<h3 id="option-c-case-teams">Option C: Case Teams</h3>
+<p>Use Case Teams to manage per-record access dynamically.</p>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Per-record granularity</td>
+<td>Not scalable for 4.2M records — team membership is per-case, not
+per-group</td>
+</tr>
+<tr>
+<td>Built-in</td>
+<td>No bulk assignment mechanism</td>
+</tr>
+<tr>
+<td></td>
+<td>Al confirmed they only use teams as a "catcher" for audit trail</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict: Not viable at this volume.</strong> Case Teams are
+per-record; managing team membership across millions of records for
+client assignment is not practical.</p>
+<hr />
+<h3
+id="option-d-criteria-based-sharing-rules--public-groups-fully-declarative">Option
+D: Criteria-Based Sharing Rules + Public Groups (Fully Declarative)</h3>
+<p>Create client-specific Public Groups and matching criteria-based
+sharing rules. Admins manage client assignment by adding/removing users
+from groups.</p>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fully declarative — no code to maintain</td>
+<td><strong>Salesforce limits: 50 criteria-based sharing rules per
+object</strong></td>
+</tr>
+<tr>
+<td>Delegated admins already manage groups</td>
+<td>~1 rule per client for ARR (+ existing ZB rules)</td>
+</tr>
+<tr>
+<td>Matches existing ZB pattern</td>
+<td>Won't scale past ~20–25 ARR clients</td>
+</tr>
+<tr>
+<td>Auditable, visible in Setup</td>
+<td>Adding a new client requires creating a group + sharing rule</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict: Best fit for current scope.</strong> Titan Health
+currently has a small number of ARR clients. This approach is fully
+maintainable by the existing team without Apex skills. If client count
+grows past 20–25, upgrade to Option E.</p>
+<hr />
+<h3 id="option-e-apex-managed-sharing-programmatic">Option E: Apex
+Managed Sharing (Programmatic)</h3>
+<p>Use Apex triggers to create <code>CaseShare</code> records
+dynamically based on the Case's <code>Import_Client__c</code> field and
+the user's Public Group membership.</p>
+<table>
+<thead>
+<tr>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unlimited scalability (no 50-rule limit)</td>
+<td>Requires Apex code — no one on team to maintain</td>
+</tr>
+<tr>
+<td>Dynamic — handles new clients without new rules</td>
+<td>Harder to debug and audit</td>
+</tr>
+<tr>
+<td>Trigger-based, automatic</td>
+<td>Requires batch job for bulk recalculation</td>
+</tr>
+<tr>
+<td>Already built and tested in scratch org</td>
+<td>More complex failure modes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict: Strong fallback.</strong> The code exists in the
+scratch org and has been tested. Not recommended as primary approach
+given team constraints, but should be kept as an upgrade path.</p>
+<hr />
+<h3
+id="option-f-hybrid--declarative-primary--apex-fallback-recommended-by-scratch-org">Option
+F: Hybrid — Declarative Primary + Apex Fallback (Recommended by scratch
+org)</h3>
+<p>Use criteria-based sharing rules for current clients, with the Apex
+sharing framework ready to activate if client count exceeds limits.</p>
+<p><strong>Verdict: This was the direction in the scratch org, but the
+implementation had issues (see Section 4).</strong></p>
+<hr />
+<h2 id="4-recommended-solution">4. Recommended Solution</h2>
+<p><strong>Option D: Criteria-Based Sharing Rules + Client-Specific
+Public Groups</strong></p>
+<p>Pure declarative. No Apex in the primary path. The Apex code remains
+in the codebase as a documented upgrade path but is not active.</p>
+<h3 id="why-not-hybrid">Why Not Hybrid?</h3>
+<p>The scratch org implementation mixed both approaches, but this
+introduces complexity without benefit at current scale. If you have 5
+clients, you need 5 sharing rules — well within the 50-rule limit.
+Adding Apex sharing on top creates two access paths to audit, two
+mechanisms to debug, and a code dependency for a team that can't
+maintain Apex.</p>
+<p><strong>Keep it simple. Go fully declarative now. The Apex code is
+there if you need it later.</strong></p>
+<hr />
+<h3 id="41-architecture-overview">4.1 Architecture Overview</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────────┐
+│                    Case OWD = PRIVATE                           │
+│               (No one sees anything by default)                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+┌───────────────┐  ┌────────────────────┐  ┌───────────────────┐
+│   ZB ACCESS   │  │    ARR ACCESS      │  │   QUEUE ACCESS    │
+│               │  │  (Client-Specific) │  │                   │
+│ Sharing Rule: │  │                    │  │ Queue membership  │
+│ LOB=ZB →      │  │ Sharing Rule per   │  │ controls who sees │
+│ ZB_All_Users  │  │ client:            │  │ unassigned cases  │
+│ (Read)        │  │ LOB=ARR +          │  │                   │
+│               │  │ Client=X →         │  │ Supervisors +     │
+│ (unchanged    │  │ ARR_Client_X       │  │ Admins only       │
+│  from today)  │  │ (Read/Write)       │  │                   │
+└───────────────┘  └────────────────────┘  └───────────────────┘</code></pre>
+<h3 id="42-the-three-layers">4.2 The Three Layers</h3>
+<p><strong>Layer 1 — OWD Private (Foundation)</strong></p>
+<p>Already in place. No changes needed. Every Case is invisible by
+default.</p>
+<p><strong>Layer 2 — LOB Isolation</strong></p>
+<table>
+<thead>
+<tr>
+<th>LOB</th>
+<th>Mechanism</th>
+<th>Who Gets Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ZB</td>
+<td><strong>Two</strong> criteria-based sharing rules by access
+level:</td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>LOB__c = 'ZB'</code> →
+<code>ZB_Encounter_Read_Only_Access</code> (Read)</td>
+<td>Reimbursement Auditors I–IV, Client Success Manager
+(role-based)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>LOB__c = 'ZB'</code> →
+<code>ZB_Encounter_Read_Edit_Access</code> (Read/Write)</td>
+<td>Payor Collections Specialists I–IV, Claims Analyst (role-based)</td>
+</tr>
+<tr>
+<td>ARR</td>
+<td><strong>No LOB-wide rule.</strong> Access comes exclusively through
+client-specific rules (Layer 3)</td>
+<td>Only users assigned to specific clients</td>
+</tr>
+</tbody>
+</table>
+<p>This is the critical difference from ZB. ZB uses a <strong>two-tier
+role-based model</strong> — certain roles get Read Only, others get
+Read/Write, and Supervisors/Program Administrators inherit access via
+"Grant Access Using Hierarchies." For ARR, there is <strong>no blanket
+LOB access</strong> — you only see the clients you're assigned to.
+Cross-LOB isolation is achieved by the absence of any sharing rule that
+would grant access across LOBs.</p>
+<p><strong>Layer 3 — Client-Level Access (ARR Only)</strong></p>
+<p>One criteria-based sharing rule per ARR client:</p>
+<table>
+<thead>
+<tr>
+<th>Rule Name</th>
+<th>Criteria</th>
+<th>Shared With</th>
+<th>Access Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ARR_Client_NWM_Access</code></td>
+<td><code>LOB__c = 'ARR' AND Import_Client__c = 'NWM'</code></td>
+<td><code>ARR_Client_NWM</code></td>
+<td>Read/Write</td>
+</tr>
+<tr>
+<td><code>ARR_Client_ABC_Access</code></td>
+<td><code>LOB__c = 'ARR' AND Import_Client__c = 'ABC'</code></td>
+<td><code>ARR_Client_ABC</code></td>
+<td>Read/Write</td>
+</tr>
+<tr>
+<td><em>(one per client)</em></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Who goes in each client group:</strong></p>
+<ul>
+<li>Collectors assigned to that client</li>
+<li>Supervisors assigned to that client</li>
+<li>Directors/VPs who oversee that client</li>
+</ul>
+<p><strong>Layer 4 — Queue Visibility</strong></p>
+<table>
+<thead>
+<tr>
+<th>Queue</th>
+<th>Members</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ARR_Unassigned</code></td>
+<td>Supervisors, Admins</td>
+<td>Only queue members see queue-owned (unassigned) cases</td>
+</tr>
+<tr>
+<td><code>ARR_Collections</code></td>
+<td>Supervisors, Admins</td>
+<td>Same pattern for collections workflow</td>
+</tr>
+<tr>
+<td><code>ZB_Unassigned</code></td>
+<td>ZB Supervisors, Admins</td>
+<td>Existing, unchanged</td>
+</tr>
+</tbody>
+</table>
+<p>Collectors are explicitly <strong>not</strong> queue members. They
+cannot see unassigned encounters until a supervisor assigns one to
+them.</p>
+<h3 id="43-public-groups">4.3 Public Groups</h3>
+<h4 id="zb-groups-existing--created-by-al-reveles-2172026">ZB Groups
+(Existing — Created by Al Reveles, 2/17/2026)</h4>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>API Name</th>
+<th>Type</th>
+<th>Purpose</th>
+<th>Members</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ZB - Encounter Read Only Access</code></td>
+<td><code>ZB_Encounter_Read_Only_Access</code></td>
+<td><strong>Role-based</strong></td>
+<td>ZB data sharing — <strong>Read Only</strong></td>
+<td>Reimbursement Auditor I–IV, Client Success Manager</td>
+</tr>
+<tr>
+<td><code>ZB - Encounter Read/Edit Access</code></td>
+<td><code>ZB_Encounter_Read_Edit_Access</code></td>
+<td><strong>Role-based</strong></td>
+<td>ZB data sharing — <strong>Read/Write</strong></td>
+<td>Payor Collections Specialist I–IV, Claims Analyst</td>
+</tr>
+</tbody>
+</table>
+<p>Both ZB groups have <strong>Grant Access Using Hierarchies =
+true</strong>, so Supervisors and Program Administrators inherit access
+automatically through the role hierarchy.</p>
+<h4 id="arr-groups-new--to-be-created">ARR Groups (New — To Be
+Created)</h4>
+<table>
+<thead>
+<tr>
+<th>Group</th>
+<th>Type</th>
+<th>Purpose</th>
+<th>Members</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ARR_All_Users</code></td>
+<td><strong>Manual</strong></td>
+<td>List view sharing, reporting (NOT data sharing)</td>
+<td>All users who work ARR — manually maintained</td>
+</tr>
+<tr>
+<td><code>ARR_Supervisors</code></td>
+<td><strong>Manual</strong></td>
+<td>Queue membership, supervisor-level features</td>
+<td>Supervisors who manage ARR — manually maintained</td>
+</tr>
+<tr>
+<td><code>ARR_Client_NWM</code></td>
+<td>Manual</td>
+<td><strong>Data sharing</strong> — controls who sees NWM cases</td>
+<td>Users assigned to NWM (collectors + supervisors)</td>
+</tr>
+<tr>
+<td><code>ARR_Client_ABC</code></td>
+<td>Manual</td>
+<td><strong>Data sharing</strong> — controls who sees ABC cases</td>
+<td>Users assigned to ABC (collectors + supervisors)</td>
+</tr>
+<tr>
+<td><em>(one per ARR client)</em></td>
+<td>Manual</td>
+<td><strong>Data sharing</strong></td>
+<td>Users assigned to that client</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why ZB groups are role-based but ARR client groups are
+manual:</strong></p>
+<ul>
+<li>ZB is <strong>client-agnostic</strong> — access is determined by job
+function. Reimbursement Auditors always audit ZB encounters (Read Only).
+Payor Collections Specialists and Claims Analysts always work ZB
+encounters (Read/Write). Role-based groups work because the role
+determines the access level.</li>
+<li>ARR requires <strong>client-level isolation</strong> — a Payor
+Collections Specialist assigned to NWM should not automatically see ABC
+cases. Since the same role can be assigned to different clients,
+role-based groups cannot provide client-level isolation. Manual groups
+are required.</li>
+<li><code>ARR_All_Users</code> and <code>ARR_Supervisors</code> are
+manual because any role could potentially work ARR. These are for UI
+visibility and queue membership, not data sharing.</li>
+</ul>
+<p><strong>Important distinction:</strong></p>
+<ul>
+<li><code>ARR_All_Users</code> is for <strong>UI visibility</strong>
+(list views, reports) — NOT for data sharing rules</li>
+<li><code>ARR_Client_*</code> groups are for <strong>data
+sharing</strong> — these control which cases users can see</li>
+<li>A user in <code>ARR_Client_NWM</code> but not
+<code>ARR_Client_ABC</code> can see NWM cases but not ABC cases</li>
+</ul>
+<h3 id="44-role-hierarchy-production--unchanged">4.4 Role Hierarchy
+(Production — Unchanged)</h3>
+<pre><code>Titan Health Management Solutions
+└── Program Administrator
+    ├── Client Success Manager
+    └── Supervisor
+        ├── Claims Analyst
+        ├── Payor Collections Specialist I
+        ├── Payor Collections Specialist II
+        ├── Payor Collections Specialist III
+        ├── Payor Collections Specialist IV
+        ├── Reimbursement Auditor I
+        ├── Reimbursement Auditor II
+        ├── Reimbursement Auditor III
+        └── Reimbursement Auditor IV</code></pre>
+<p><strong>Key characteristics:</strong></p>
+<ul>
+<li>Roles are organized by <strong>job function and seniority
+tier</strong></li>
+<li>All worker roles (Claims Analyst, Payor Collections Specialists,
+Reimbursement Auditors) are peers under Supervisor</li>
+<li>Tiers I–IV represent seniority levels, not access levels — all tiers
+within a function get the same Salesforce permissions</li>
+<li><strong>Roles map to ZB access levels:</strong> Reimbursement
+Auditors + Client Success Manager → ZB Read Only; Payor Collections
+Specialists + Claims Analyst → ZB Read/Write. This is why ZB groups are
+role-based.</li>
+<li><strong>Roles do NOT map to ARR client assignment</strong> — a Payor
+Collections Specialist could work any ARR client. ARR client-level
+access is determined by manual Public Group membership.</li>
+<li>The Supervisor role inherits visibility from all subordinate roles
+via "Grant Access Using Hierarchies," giving Supervisors and Program
+Administrators full ZB access automatically</li>
+<li>Actual ARR data access is controlled by OWD Private + criteria-based
+sharing rules, not by role hierarchy rollup</li>
+</ul>
+<h3 id="45-how-user-assignment-works">4.5 How User Assignment Works</h3>
+<p><strong>Assigning a user to an ARR client (admin
+action):</strong></p>
+<ol type="1">
+<li>Add user to the client's Public Group (e.g.,
+<code>ARR_Client_NWM</code>)</li>
+<li>Sharing rule automatically grants Read/Write to that client's
+cases</li>
+<li>No code, no deployment, no record-level changes</li>
+</ol>
+<p><strong>Removing a user from a client:</strong></p>
+<ol type="1">
+<li>Remove user from the client's Public Group</li>
+<li>Access is automatically revoked by the sharing engine</li>
+</ol>
+<p><strong>Adding a new ARR client:</strong></p>
+<ol type="1">
+<li>Create a new Public Group (<code>ARR_Client_NEWCLIENT</code>)</li>
+<li>Create a new criteria-based sharing rule:
+<code>LOB=ARR AND Import_Client=NEWCLIENT → ARR_Client_NEWCLIENT (Read/Write)</code></li>
+<li>Add users to the group</li>
+</ol>
+<p>This is admin-level work — no development needed.</p>
+<h3 id="46-permission-sets">4.6 Permission Sets</h3>
+<table>
+<thead>
+<tr>
+<th>Permission Set</th>
+<th>Assigned To</th>
+<th>Case Object</th>
+<th>Key Field Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ARR_Collector_Base</code></td>
+<td>ARR Collectors</td>
+<td>Read, Edit</td>
+<td>Read most fields; read-only on Status_Code_Category,
+Contingency_Rate, Encounter_Amount</td>
+</tr>
+<tr>
+<td><code>ARR_Supervisor_Elevated</code></td>
+<td>ARR Supervisors</td>
+<td>Create, Read, Edit</td>
+<td>Full field edit including supervisor-only fields</td>
+</tr>
+<tr>
+<td><code>ARR_Admin</code></td>
+<td>ARR Admins</td>
+<td>Create, Read, Edit</td>
+<td>Full access including Payor__c object</td>
+</tr>
+<tr>
+<td><code>ZB_Collector_Base</code></td>
+<td>ZB Collectors</td>
+<td>Read, Edit</td>
+<td>ZB-specific field access</td>
+</tr>
+</tbody>
+</table>
+<p>Permission sets control <strong>what you can do</strong> with records
+you can see. Sharing rules control <strong>which records</strong> you
+can see.</p>
+<hr />
+<h2 id="5-visibility-matrix">5. Visibility Matrix</h2>
+<p>Given: OWD Private, no ARR LOB-wide rule, client-specific rules
+only.</p>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>Role</th>
+<th>Groups (Manual)</th>
+<th>ZB Group (via Role)</th>
+<th>Sees ARR NWM</th>
+<th>Sees ARR ABC</th>
+<th>Sees ARR Unassigned</th>
+<th>Sees ZB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Collector A</td>
+<td>Payor Collections Specialist II</td>
+<td>ARR_Client_NWM, ARR_All_Users</td>
+<td>ZB_Encounter_Read_Edit_Access (auto)</td>
+<td>Read/Write</td>
+<td><strong>No</strong></td>
+<td><strong>No</strong></td>
+<td>Read/Write</td>
+</tr>
+<tr>
+<td>Collector B</td>
+<td>Payor Collections Specialist I</td>
+<td>ARR_Client_ABC, ARR_All_Users</td>
+<td>ZB_Encounter_Read_Edit_Access (auto)</td>
+<td><strong>No</strong></td>
+<td>Read/Write</td>
+<td><strong>No</strong></td>
+<td>Read/Write</td>
+</tr>
+<tr>
+<td>Collector C</td>
+<td>Payor Collections Specialist III</td>
+<td>ARR_Client_NWM, ARR_Client_ABC, ARR_All_Users</td>
+<td>ZB_Encounter_Read_Edit_Access (auto)</td>
+<td>Read/Write</td>
+<td>Read/Write</td>
+<td><strong>No</strong></td>
+<td>Read/Write</td>
+</tr>
+<tr>
+<td>Supervisor D</td>
+<td>Supervisor</td>
+<td>ARR_Client_NWM, ARR_Supervisors, ARR_All_Users</td>
+<td>Inherits via hierarchy</td>
+<td>Read/Write</td>
+<td><strong>No</strong></td>
+<td>NWM only (queue member)</td>
+<td>Read/Write (inherited)</td>
+</tr>
+<tr>
+<td>Supervisor E</td>
+<td>Supervisor</td>
+<td>ARR_Client_NWM, ARR_Client_ABC, ARR_Supervisors, ARR_All_Users</td>
+<td>Inherits via hierarchy</td>
+<td>Read/Write</td>
+<td>Read/Write</td>
+<td>All (queue member)</td>
+<td>Read/Write (inherited)</td>
+</tr>
+<tr>
+<td>Program Admin</td>
+<td>Program Administrator</td>
+<td>All ARR_Client_* groups, ARR_Supervisors, ARR_All_Users</td>
+<td>Inherits via hierarchy</td>
+<td>Read/Write</td>
+<td>Read/Write</td>
+<td>All (queue member)</td>
+<td>Read/Write (inherited)</td>
+</tr>
+<tr>
+<td>ZB Auditor</td>
+<td>Reimbursement Auditor I</td>
+<td><em>(none)</em></td>
+<td>ZB_Encounter_Read_Only_Access (auto)</td>
+<td><strong>No</strong></td>
+<td><strong>No</strong></td>
+<td><strong>No</strong></td>
+<td><strong>Read Only</strong></td>
+</tr>
+<tr>
+<td>ZB Worker</td>
+<td>Claims Analyst</td>
+<td><em>(none)</em></td>
+<td>ZB_Encounter_Read_Edit_Access (auto)</td>
+<td><strong>No</strong></td>
+<td><strong>No</strong></td>
+<td><strong>No</strong></td>
+<td>Read/Write</td>
+</tr>
+<tr>
+<td>Dual-LOB User</td>
+<td>Claims Analyst</td>
+<td>ARR_Client_NWM, ARR_All_Users</td>
+<td>ZB_Encounter_Read_Edit_Access (auto)</td>
+<td>Read/Write</td>
+<td><strong>No</strong></td>
+<td><strong>No</strong></td>
+<td>Read/Write</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> All Payor Collections Specialists and Claims
+Analysts automatically receive ZB Read/Write access via their role-based
+ZB group membership. All Reimbursement Auditors automatically receive ZB
+Read Only access. ARR access is additive — users are manually added to
+ARR client groups as needed. This means most users will work both LOBs
+by default (ZB via role, ARR via manual group assignment).</p>
+<hr />
+<h2 id="6-issue-in-current-scratch-org">6. Issue in Current Scratch
+Org</h2>
+<p>The POC scratch org has a rule that needs to be
+<strong>removed</strong> before production:</p>
+<p><strong><code>ARR_LOB_Access</code></strong> — grants <strong>Read to
+ALL ARR cases</strong> for <code>ARR_All_Users</code></p>
+<p>This breaks client isolation. An NWM collector can read ABC cases.
+The intent was to mirror ZB's LOB-wide read, but ARR's client isolation
+requirement means <strong>no blanket LOB access</strong>. Access must
+flow exclusively through client-specific groups.</p>
+<p><strong>Also reconsider:</strong>
+<code>ARR_Supervisor_Full_Access</code> — grants Edit to ALL ARR cases
+for <code>ARR_Supervisors</code>. Al's statement that supervisors
+default to one client and get added to others suggests supervisors
+should also be client-restricted. Replace this with adding supervisors
+to client-specific groups.</p>
+<h3 id="corrected-sharing-rules">Corrected Sharing Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Criteria</th>
+<th>Shared With</th>
+<th>Access</th>
+<th>Keep/Remove</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ZB_Encounter_Read_Only</code></td>
+<td><code>LOB = ZB</code></td>
+<td><code>ZB_Encounter_Read_Only_Access</code></td>
+<td>Read</td>
+<td><strong>Keep</strong></td>
+<td>Existing — grants Reimbursement Auditors + CSM read-only ZB
+access</td>
+</tr>
+<tr>
+<td><code>ZB_Encounter_Read_Edit</code></td>
+<td><code>LOB = ZB</code></td>
+<td><code>ZB_Encounter_Read_Edit_Access</code></td>
+<td>Read/Write</td>
+<td><strong>Keep</strong></td>
+<td>Existing — grants Payor Collections Specialists + Claims Analysts ZB
+read/write</td>
+</tr>
+<tr>
+<td><code>ARR_LOB_Access</code></td>
+<td><code>LOB = ARR</code></td>
+<td><code>ARR_All_Users</code></td>
+<td>Read</td>
+<td><strong>Remove</strong></td>
+<td>Breaks client isolation — grants read across all clients</td>
+</tr>
+<tr>
+<td><code>ARR_Client_NWM_Access</code></td>
+<td><code>LOB = ARR AND Client = NWM</code></td>
+<td><code>ARR_Client_NWM</code></td>
+<td>Read/Write</td>
+<td><strong>Keep</strong></td>
+<td>Client-specific, correct</td>
+</tr>
+<tr>
+<td><code>ARR_Client_ABC_Access</code></td>
+<td><code>LOB = ARR AND Client = ABC</code></td>
+<td><code>ARR_Client_ABC</code></td>
+<td>Read/Write</td>
+<td><strong>Keep</strong></td>
+<td>Client-specific, correct</td>
+</tr>
+<tr>
+<td><code>ARR_Supervisor_Full_Access</code></td>
+<td><code>LOB = ARR</code></td>
+<td><code>ARR_Supervisors</code></td>
+<td>Edit</td>
+<td><strong>Remove</strong></td>
+<td>Supervisors are client-restricted per Al; add them to client groups
+instead</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-scalability-path">7. Scalability Path</h2>
+<p><strong>Current state:</strong> ~2–5 ARR clients = 2–5 sharing rules.
+Well within the 50-rule limit.</p>
+<p><strong>Scaling plan:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Client Count</th>
+<th>Approach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1–20</td>
+<td>Criteria-based sharing rules (fully declarative)</td>
+</tr>
+<tr>
+<td>20–40</td>
+<td>Monitor rule count, plan migration if needed</td>
+</tr>
+<tr>
+<td>40+</td>
+<td>Activate Apex Managed Sharing (code exists in scratch org,
+tested)</td>
+</tr>
+</tbody>
+</table>
+<p>The Apex framework (<code>ARRClientSharingService</code>,
+<code>CaseARRSharingTriggerHandler</code>,
+<code>ARRClientSharingBatch</code>) is already built and tested. To
+activate:</p>
+<ol type="1">
+<li>Deploy the Apex classes and trigger</li>
+<li>Remove criteria-based client rules (Apex replaces them)</li>
+<li>Run <code>ARRClientSharingBatch</code> to backfill CaseShare
+records</li>
+</ol>
+<p>This is a future consideration, not a Release 3 concern.</p>
+<hr />
+<h2 id="8-additional-configurations">8. Additional Configurations</h2>
+<h3 id="record-type-picklist-filtering-deployed">Record Type Picklist
+Filtering (Deployed)</h3>
+<ul>
+<li><strong>Root Cause</strong> — "Coding Error" excluded from ARR
+record type, available only on ZB</li>
+<li><strong>Status Code Category</strong> — All values available on both
+(ARR, ZB may diverge later)</li>
+</ul>
+<h3 id="list-view-visibility-deployed">List View Visibility
+(Deployed)</h3>
+<ul>
+<li>ARR list views shared with <code>ARR_All_Users</code> group
+only</li>
+<li>ZB users cannot see ARR list views in their dropdown</li>
+</ul>
+<h3 id="payor-restriction">Payor Restriction</h3>
+<ul>
+<li>Validation rule <code>Payor_Must_Match_Client_And_LOB</code>
+enforces Payor selection matches Encounter's Client + LOB</li>
+<li>Lookup filter not feasible (text field limitation) — validation rule
+provides equivalent server-side enforcement</li>
+</ul>
+<hr />
+<h2 id="9-implementation-steps">9. Implementation Steps</h2>
+<h3 id="phase-1-fix-and-validate-sprint-1">Phase 1: Fix and Validate
+(Sprint 1)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Remove <code>ARR_LOB_Access</code>
+sharing rule from scratch org</label></li>
+<li><label><input type="checkbox" />Remove
+<code>ARR_Supervisor_Full_Access</code> sharing rule</label></li>
+<li><label><input type="checkbox" />Add supervisors to client-specific
+groups (<code>ARR_Client_NWM</code>,
+<code>ARR_Client_ABC</code>)</label></li>
+<li><label><input type="checkbox" />Run
+<code>test-visibility.apex</code> to validate corrected visibility
+matrix</label></li>
+<li><label><input type="checkbox" />Verify: NWM collector sees only NWM
+cases, not ABC</label></li>
+<li><label><input type="checkbox" />Verify: Supervisor in NWM group sees
+only NWM + unassigned queue</label></li>
+<li><label><input type="checkbox" />Verify: ZB collector sees zero ARR
+cases</label></li>
+</ul>
+<h3 id="phase-2-deploy-to-uatproduction">Phase 2: Deploy to
+UAT/Production</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Deploy sharing rules (corrected
+set)</label></li>
+<li><label><input type="checkbox" />Create Public Groups for each ARR
+client</label></li>
+<li><label><input type="checkbox" />Configure queue membership
+(supervisors/admins only)</label></li>
+<li><label><input type="checkbox" />Deploy record type picklist
+assignments</label></li>
+<li><label><input type="checkbox" />Deploy list view sharing
+configuration</label></li>
+<li><label><input type="checkbox" />Train delegated admins on group
+management workflow</label></li>
+</ul>
+<h3 id="phase-3-future-scaling-if-needed">Phase 3: Future Scaling (if
+needed)</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Monitor sharing rule count as new
+clients are added</label></li>
+<li><label><input type="checkbox" />At 20+ clients, evaluate Apex
+Managed Sharing activation</label></li>
+<li><label><input type="checkbox" />Batch migration script already
+tested (<code>ARRClientSharingBatch</code>)</label></li>
+</ul>
+<hr />
+<h2 id="10-open-questions-for-al--john">10. Open Questions for Al /
+John</h2>
+<ol type="1">
+<li><strong>Supervisor client isolation</strong> — Confirm: supervisors
+should only see cases for their assigned clients (not all ARR
+cases)?</li>
+<li><strong>Director/VP access</strong> — Should Directors see all ARR
+cases, or also be client-restricted?</li>
+<li><strong>How many ARR clients</strong> are expected in the next 12
+months? (determines if we need Apex scaling path)</li>
+<li><strong>New client onboarding</strong> — Who creates the Public
+Group + sharing rule when a new client is added? Delegated admin or SF
+admin?</li>
+</ol>
+  </article>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

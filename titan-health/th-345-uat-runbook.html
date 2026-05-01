@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TH-345 &mdash; Historic Archival Pipeline UAT Validation (Full Copy)</title>
+<style>
+  :root { --sf-blue:#0176d3; --sf-dark:#032d60; --sf-light:#e8f4fd; --success:#2e844a; --danger:#c23934; --warning:#fe9339; --gray-100:#f3f3f3; --gray-200:#e5e5e5; --gray-600:#706e6b; --gray-800:#3e3e3c; --radius:8px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:var(--gray-800); line-height:1.6; background:#f4f6f9; }
+  .container { max-width:1100px; margin:0 auto; padding:24px 20px; }
+  .header { background:linear-gradient(135deg,var(--sf-dark),#1565c0); color:white; padding:48px 0; margin-bottom:32px; border-radius:0 0 16px 16px; text-align:center; }
+  .header h1 { font-size:32px; font-weight:700; } .header .sub { font-size:18px; opacity:0.9; margin-top:8px; } .header .meta { font-size:13px; opacity:0.7; margin-top:12px; }
+  .env-badge { display:inline-block; background:#ff6f00; color:white; font-weight:700; font-size:14px; padding:6px 18px; border-radius:20px; margin-top:12px; letter-spacing:0.5px; }
+  .progress-bar { background:white; border-radius:var(--radius); padding:20px 24px; margin-bottom:32px; box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; align-items:center; gap:20px; position:sticky; top:0; z-index:100; }
+  .progress-bar .label { font-weight:700; font-size:14px; white-space:nowrap; }
+  .progress-track { flex:1; height:12px; background:var(--gray-200); border-radius:6px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--success); border-radius:6px; transition:width 0.4s; width:0%; }
+  .progress-text { font-size:14px; font-weight:600; color:var(--gray-600); min-width:60px; text-align:right; }
+  .section { background:white; border-radius:var(--radius); padding:28px; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  .section h2 { font-size:22px; color:var(--sf-dark); margin-bottom:16px; padding-bottom:8px; border-bottom:3px solid var(--sf-light); }
+  .section h3 { font-size:16px; color:var(--sf-blue); margin:20px 0 10px; }
+  .section p,.section li { font-size:14px; } .section ol,.section ul { padding-left:24px; margin:8px 0; } .section li { margin-bottom:8px; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
+  th { background:var(--sf-light); color:var(--sf-dark); text-align:left; padding:10px 12px; font-weight:700; font-size:12px; text-transform:uppercase; }
+  td { padding:10px 12px; border-bottom:1px solid var(--gray-200); } tr:last-child td { border-bottom:none; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+  .tag-new { background:#e8f5e9; color:#2e844a; } .tag-exists { background:#e3f2fd; color:#1565c0; } .tag-missing { background:#fce4ec; color:#c23934; } .tag-mod { background:#fff3e0; color:#e65100; }
+  .demo-step { border:2px solid var(--gray-200); border-radius:var(--radius); margin-bottom:16px; overflow:hidden; transition:border-color 0.3s; }
+  .demo-step.passed { border-color:var(--success); } .demo-step.failed { border-color:var(--danger); }
+  .demo-step-header { display:flex; align-items:center; gap:12px; padding:16px 20px; background:var(--gray-100); cursor:pointer; user-select:none; }
+  .demo-step-header .num { width:36px; height:36px; border-radius:50%; background:#1b5e20; color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0; }
+  .demo-step.passed .demo-step-header .num { background:var(--success); }
+  .demo-step.failed .demo-step-header .num { background:var(--danger); }
+  .demo-step-header .title { flex:1; font-weight:700; font-size:15px; }
+  .demo-step-header .status-badge { font-size:12px; font-weight:600; padding:4px 12px; border-radius:12px; }
+  .demo-step.passed .status-badge { background:#d4edda; color:var(--success); } .demo-step.failed .status-badge { background:#f8d7da; color:var(--danger); }
+  .demo-step-body { padding:20px; display:none; } .demo-step.open .demo-step-body { display:block; }
+  .talk-track { background:#f0f4f8; border-left:4px solid var(--sf-blue); padding:14px 18px; margin:12px 0; border-radius:0 6px 6px 0; font-size:13px; font-style:italic; color:#455a64; }
+  .talk-track strong { color:var(--sf-dark); font-style:normal; }
+  .action { background:#fff8e1; border-left:4px solid var(--warning); padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; font-size:13px; }
+  .action strong { color:#e65100; }
+  .result { background:#e8f5e9; border-left:4px solid var(--success); padding:12px 16px; margin:12px 0; border-radius:0 6px 6px 0; font-size:13px; }
+  .result strong { color:var(--success); }
+  .warn-box { background:#fff3e0; border:2px solid var(--warning); padding:16px 20px; margin:16px 0; border-radius:var(--radius); font-size:13px; }
+  .warn-box strong { color:#e65100; }
+  .code-block { position:relative; margin:12px 0; }
+  .code-block pre { background:#1e1e2e; color:#cdd6f4; padding:14px 18px; border-radius:6px; overflow-x:auto; font-size:12px; line-height:1.5; font-family:'SF Mono',monospace; white-space:pre; }
+  .code-block .copy-btn { position:absolute; top:8px; right:8px; background:rgba(255,255,255,0.15); border:none; color:#cdd6f4; padding:4px 10px; border-radius:4px; font-size:11px; cursor:pointer; } .code-block .copy-btn:hover { background:rgba(255,255,255,0.3); } .code-block .copy-btn.copied { background:var(--success); color:white; }
+  .actions { display:flex; gap:8px; margin-top:16px; }
+  .btn { padding:8px 20px; border-radius:6px; border:none; font-weight:600; font-size:13px; cursor:pointer; }
+  .btn-pass { background:var(--success); color:white; } .btn-fail { background:white; color:var(--danger); border:2px solid var(--danger); } .btn-reset { background:white; color:var(--gray-600); border:2px solid var(--gray-200); }
+  .footer { text-align:center; padding:24px; color:var(--gray-600); font-size:12px; }
+  details { margin:8px 0; } details summary { cursor:pointer; font-size:13px; color:var(--sf-blue); font-weight:600; }
+  .package-table td:first-child { font-family:'SF Mono',monospace; font-size:12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="container">
+    <h1>TH-345 &mdash; Historic Encounter Archival</h1>
+    <div class="sub">UAT Validation Runbook</div>
+    <div class="env-badge">FULL COPY &mdash; titan-full</div>
+    <div class="meta">Deployed: April __, 2026 &bull; Relkor Cloud Solutions</div>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="progress-bar">
+  <div class="label">Validation Progress</div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">0 / 8</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PIPELINE OVERVIEW -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Pipeline Overview</h2>
+  <p>An Encounter is eligible for archival when it has been in a closed status (<code>Closed</code> or <code>Confirmed No Opportunity</code>) for at least 730 days. Each weekend, Salesforce flags eligible Encounters, Tim's integration pulls them into Athena, and Salesforce hard-deletes the originals after a 7-day buffer.</p>
+  <pre style="background:#1e1e2e; color:#cdd6f4; padding:16px; border-radius:6px; font-size:12px; line-height:1.6;">
+ Sun 02:00  EncounterArchivalBatch        →  Archival_Status__c = 'Archiving In Progress'
+ (async)    Tim's integration             →  REST /services/apexrest/archival/encounters
+                                            Writes to Athena, stamps 'Archive Completed' +
+                                            Archive_Completed_Date__c
+ Sun 04:00  EncounterDeleteBatch          →  Hard-deletes where Archive Completed ≥ 7 days
+ (every)    Archive_Run__c row            →  Audit log for each batch execution</pre>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- DEPLOYMENT PACKAGE -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Deployment Package (31 Components)</h2>
+  <p>Source: <code>metadata/force-app/main/default/</code> filtered via <code>metadata/package-th345/package.xml</code>. Verified against Prod on 2026-04-16 &mdash; see <code>docs/TH-345/TH-345-DEPLOYMENT-COMPONENT-MATRIX.md</code>.</p>
+  <table class="package-table">
+    <tr><th>Component</th><th>Type</th><th>Prod (pre)</th><th>Full Copy (post-deploy)</th></tr>
+    <tr><td>ArchivalDataService</td><td>Apex Class (REST)</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>EncounterArchivalBatch</td><td>Apex Class (Batchable)</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>EncounterArchivalBatchTest</td><td>Apex Test</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>EncounterArchivalSchedulable</td><td>Apex Class (Schedulable)</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>EncounterDeleteBatch</td><td>Apex Class (Batchable)</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>EncounterDeleteBatchTest</td><td>Apex Test</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>EncounterDeleteSchedulable</td><td>Apex Class (Schedulable)</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Archive_Run__c</td><td>Custom Object (+ 9 fields)</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Archival_Config__mdt</td><td>Custom Metadata Type (+ 3 fields)</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Archival_Config.Encounter_Archive_Query</td><td>CMDT Record</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Archival_Config.Encounter_Financial_Activity_Query</td><td>CMDT Record</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Case.Archival_Eligible__c</td><td>Formula Checkbox</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Case.Archival_Status__c</td><td>Picklist</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Case.Archive_Completed_Date__c</td><td>DateTime</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Case.Archival_Eligible_Encounters</td><td>List View</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Case.Archive_Completed</td><td>List View</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Case.Archive_Failed</td><td>List View</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Archive_Runs</td><td>Report Type</td><td><span class="tag tag-missing">New</span></td><td><span class="tag tag-new">Just Deployed</span></td></tr>
+    <tr><td>Case.Restrict_Modifying_Closed_Cases</td><td>Validation Rule</td><td><span class="tag tag-exists">Exists</span></td><td><span class="tag tag-mod">Modified</span></td></tr>
+  </table>
+  <p style="margin-top:12px; font-size:12px; color:var(--gray-600);">The VR modification adds <code>NOT(ISCHANGED(Archival_Status__c))</code> so automated status updates on closed encounters are not blocked.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- DEPLOY COMMAND -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Deploy Commands</h2>
+  <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre># Validate (dry-run) first
+sf project deploy start \
+  --manifest metadata/package-th345/package.xml \
+  --dry-run \
+  --target-org titan-full \
+  --ignore-conflicts
+
+# Deploy and run targeted tests
+sf project deploy start \
+  --manifest metadata/package-th345/package.xml \
+  --target-org titan-full \
+  --test-level RunSpecifiedTests \
+  --tests EncounterArchivalBatchTest \
+  --tests EncounterDeleteBatchTest \
+  --ignore-conflicts \
+  --wait 30
+
+# Full test run (prove no regressions)
+sf apex run test --target-org titan-full --code-coverage --result-format human --wait 30</pre></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STEP 1: SCHEMA VERIFICATION -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="demo-step open" id="step-1" data-status="">
+  <div class="demo-step-header" onclick="toggle(1)">
+    <div class="num">1</div>
+    <div class="title">Post-Deploy Schema Verification</div>
+    <span class="status-badge" style="display:none"></span>
+  </div>
+  <div class="demo-step-body">
+    <div class="talk-track"><strong>Purpose:</strong> Confirm every field, object, CMDT record, and validation rule landed in Full Copy before running any runtime tests.</div>
+    <div class="action"><strong>Action:</strong> Open Developer Console &rarr; Execute Anonymous &rarr; paste the script below. All asserts must log <code>OK</code>.</div>
+
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>System.debug('=== TH-345 SCHEMA VERIFICATION ===');
+
+// Case archival fields
+Map&lt;String,Schema.SObjectField&gt; caseFields = Case.sObjectType.getDescribe().fields.getMap();
+for (String f : new List&lt;String&gt;{'Archival_Status__c','Archival_Eligible__c','Archive_Completed_Date__c'}) {
+    System.debug('Case.' + f + ': ' + (caseFields.containsKey(f.toLowerCase()) ? 'OK' : 'MISSING'));
+}
+
+// Archive_Run__c object
+try {
+    Integer n = [SELECT COUNT() FROM Archive_Run__c];
+    System.debug('Archive_Run__c table: OK (rows=' + n + ')');
+} catch(Exception e) { System.debug('Archive_Run__c: MISSING — ' + e.getMessage()); }
+
+// CMDT records
+List&lt;Archival_Config__mdt&gt; cfgs = [SELECT DeveloperName, Active__c, SOQL_Query__c FROM Archival_Config__mdt];
+System.debug('Archival_Config__mdt records: ' + cfgs.size() + ' (expect 2)');
+for (Archival_Config__mdt c : cfgs) { System.debug('  - ' + c.DeveloperName + ' active=' + c.Active__c); }
+
+// Apex classes deployed
+Integer cls = [SELECT COUNT() FROM ApexClass WHERE Name IN (
+    'ArchivalDataService','EncounterArchivalBatch','EncounterArchivalBatchTest',
+    'EncounterArchivalSchedulable','EncounterDeleteBatch','EncounterDeleteBatchTest',
+    'EncounterDeleteSchedulable')];
+System.debug('TH-345 Apex classes present: ' + cls + ' / 7');
+
+// Validation Rule (toolingapi would be needed for formula — here we just confirm presence indirectly)
+System.debug('VR Restrict_Modifying_Closed_Cases: verify in Setup → Cases → Validation Rules');</pre></div>
+
+    <div class="result"><strong>Expected debug output:</strong><br>
+      &bull; All three Case fields log <code>OK</code><br>
+      &bull; <code>Archive_Run__c table: OK</code><br>
+      &bull; <code>Archival_Config__mdt records: 2</code> &mdash; both active<br>
+      &bull; <code>TH-345 Apex classes present: 7 / 7</code>
+    </div>
+    <div class="actions">
+      <button class="btn btn-pass" onclick="mark(1,'passed')">Pass</button>
+      <button class="btn btn-fail" onclick="mark(1,'failed')">Fail</button>
+      <button class="btn btn-reset" onclick="mark(1,'')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STEP 2: SEED TEST DATA -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="demo-step" id="step-2" data-status="">
+  <div class="demo-step-header" onclick="toggle(2)">
+    <div class="num">2</div>
+    <div class="title">Seed Eligible + Ineligible Test Encounters</div>
+    <span class="status-badge" style="display:none"></span>
+  </div>
+  <div class="demo-step-body">
+    <div class="talk-track"><strong>Purpose:</strong> Create a small set of encounters in Full Copy: some old enough and closed (eligible), some recent or open (ineligible). This proves the formula field and batch query behave correctly.</div>
+    <div class="warn-box"><strong>Full Copy caveat:</strong> <code>ClosedDate</code> cannot be backdated via DML. Use existing production-sourced encounters whose <code>ClosedDate</code> is already &gt; 730 days old. If Full Copy lacks old closed records, cap this runbook at Steps 1 and 3&ndash;4 (schema + Apex unit tests) and defer end-to-end to the Prod cutover.</div>
+
+    <div class="action"><strong>Action:</strong> As admin, run the query below. You need at least one eligible encounter; otherwise, stop and escalate.</div>
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>Integer eligible = [SELECT COUNT() FROM Case
+    WHERE IsClosed = TRUE
+    AND ClosedDate &lt;= :Datetime.now().addDays(-730)
+    AND (Status_Code__c = 'Closed' OR Status_Code__c = 'Confirmed No Opportunity')
+    AND Archival_Status__c = NULL];
+System.debug('Eligible encounters in Full Copy: ' + eligible);
+System.debug(eligible &gt; 0 ? 'READY for batch test' : 'ABORT — no eligible records; skip end-to-end');</pre></div>
+
+    <div class="result"><strong>Expected:</strong> At least 1 eligible encounter. Note the count for Step 3 comparison.</div>
+    <div class="actions">
+      <button class="btn btn-pass" onclick="mark(2,'passed')">Pass</button>
+      <button class="btn btn-fail" onclick="mark(2,'failed')">Fail</button>
+      <button class="btn btn-reset" onclick="mark(2,'')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STEP 3: APEX TESTS -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="demo-step" id="step-3" data-status="">
+  <div class="demo-step-header" onclick="toggle(3)">
+    <div class="num">3</div>
+    <div class="title">Apex Unit Tests Pass with Coverage</div>
+    <span class="status-badge" style="display:none"></span>
+  </div>
+  <div class="demo-step-body">
+    <div class="talk-track"><strong>Purpose:</strong> The deploy already ran the targeted tests. This step re-runs the full suite against Full Copy to catch any cross-impact regressions introduced by deploying the new fields or VR change.</div>
+
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>sf apex run test \
+  --target-org titan-full \
+  --code-coverage \
+  --result-format human \
+  --wait 60</pre></div>
+
+    <div class="result"><strong>Expected:</strong><br>
+      &bull; All TH-345 tests (<code>EncounterArchivalBatchTest</code>, <code>EncounterDeleteBatchTest</code>) pass<br>
+      &bull; No new failures in unrelated suites<br>
+      &bull; Org-wide code coverage &ge; 75%
+    </div>
+    <div class="actions">
+      <button class="btn btn-pass" onclick="mark(3,'passed')">Pass</button>
+      <button class="btn btn-fail" onclick="mark(3,'failed')">Fail</button>
+      <button class="btn btn-reset" onclick="mark(3,'')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STEP 4: ARCHIVE BATCH -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="demo-step" id="step-4" data-status="">
+  <div class="demo-step-header" onclick="toggle(4)">
+    <div class="num">4</div>
+    <div class="title">Run EncounterArchivalBatch &mdash; flip statuses + audit row</div>
+    <span class="status-badge" style="display:none"></span>
+  </div>
+  <div class="demo-step-body">
+    <div class="talk-track"><strong>Purpose:</strong> Execute the batch one-off (not via the schedulable). It should set <code>Archival_Status__c = 'Archiving In Progress'</code> on every eligible encounter and insert exactly one <code>Archive_Run__c</code> row summarizing the run.</div>
+    <div class="action"><strong>Action:</strong> Execute Anonymous.</div>
+
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>// Pre-count
+Integer before = [SELECT COUNT() FROM Case WHERE Archival_Status__c = 'Archiving In Progress'];
+System.debug('Before: in-progress cases = ' + before);
+
+Id jobId = Database.executeBatch(new EncounterArchivalBatch(), 200);
+System.debug('Queued EncounterArchivalBatch, job=' + jobId);</pre></div>
+
+    <p style="font-size:12px; color:var(--gray-600);">Wait ~30&ndash;60 seconds for the batch to finish (Setup &rarr; Apex Jobs), then verify:</p>
+
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>Integer after = [SELECT COUNT() FROM Case WHERE Archival_Status__c = 'Archiving In Progress'];
+System.debug('After:  in-progress cases = ' + after);
+
+List&lt;Archive_Run__c&gt; runs = [SELECT Id, Run_Type__c, Run_Status__c, Records_Attempted__c,
+    Records_Succeeded__c, Records_Failed__c, Batch_Job_Id__c, Run_Start__c, Run_End__c, Error_Log__c
+    FROM Archive_Run__c ORDER BY CreatedDate DESC LIMIT 1];
+for (Archive_Run__c r : runs) {
+    System.debug('Archive_Run__c: ' + JSON.serializePretty(r));
+}</pre></div>
+
+    <div class="result"><strong>Expected:</strong><br>
+      &bull; <code>after &gt; before</code> &mdash; the delta matches the eligible count from Step 2<br>
+      &bull; One new <code>Archive_Run__c</code> with Run_Type = <code>Archive</code>, Run_Status = <code>Completed</code><br>
+      &bull; Records_Succeeded matches the delta; Records_Failed = 0<br>
+      &bull; Batch_Job_Id__c populated
+    </div>
+    <div class="actions">
+      <button class="btn btn-pass" onclick="mark(4,'passed')">Pass</button>
+      <button class="btn btn-fail" onclick="mark(4,'failed')">Fail</button>
+      <button class="btn btn-reset" onclick="mark(4,'')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STEP 5: REST ENDPOINT -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="demo-step" id="step-5" data-status="">
+  <div class="demo-step-header" onclick="toggle(5)">
+    <div class="num">5</div>
+    <div class="title">ArchivalDataService REST &mdash; Tim's Pull Contract</div>
+    <span class="status-badge" style="display:none"></span>
+  </div>
+  <div class="demo-step-body">
+    <div class="talk-track"><strong>Purpose:</strong> Tim's integration calls <code>GET /services/apexrest/archival/encounters</code> to pull everything flagged <code>Archiving In Progress</code>. The endpoint uses the CMDT-driven SOQL + <code>FIELDS(ALL)</code> so schema changes don't require code updates.</div>
+
+    <div class="action"><strong>Action:</strong> Call the endpoint from Postman (collection at <code>docs/TH-345-Postman-Collection.json</code>) or via sf CLI:</div>
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>sf org open --target-org titan-full --path /services/apexrest/archival/encounters
+# Or via API:
+sf api request --target-org titan-full --method GET \
+    --url /services/apexrest/archival/encounters</pre></div>
+
+    <div class="result"><strong>Expected JSON shape:</strong><br>
+      &bull; Array of encounter objects<br>
+      &bull; Each encounter includes all Case fields (via FIELDS(ALL))<br>
+      &bull; Each encounter includes nested <code>Encounter_Payors</code>, <code>Encounter_Code_Change</code>, <code>Document_Requests</code>, <code>Tasks</code>, <code>Events</code>, <code>EmailMessages</code>, <code>CaseComments</code><br>
+      &bull; Each Encounter_Payor includes nested <code>Financial_Activities</code> (grandchild query)<br>
+      &bull; Only encounters with <code>Archival_Status__c = 'Archiving In Progress'</code> appear
+    </div>
+    <div class="warn-box"><strong>Note to tester:</strong> Capture the JSON body and hand to Tim for format sign-off before Prod activation.</div>
+    <div class="actions">
+      <button class="btn btn-pass" onclick="mark(5,'passed')">Pass</button>
+      <button class="btn btn-fail" onclick="mark(5,'failed')">Fail</button>
+      <button class="btn btn-reset" onclick="mark(5,'')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STEP 6: DELETE BATCH -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="demo-step" id="step-6" data-status="">
+  <div class="demo-step-header" onclick="toggle(6)">
+    <div class="num">6</div>
+    <div class="title">EncounterDeleteBatch &mdash; buffer + hard-delete</div>
+    <span class="status-badge" style="display:none"></span>
+  </div>
+  <div class="demo-step-body">
+    <div class="talk-track"><strong>Purpose:</strong> Simulate Tim stamping <code>Archive Completed</code> with a date &gt; 7 days old, then run the delete batch. Master-detail children should cascade. A second <code>Archive_Run__c</code> (Run_Type=Delete) should be created.</div>
+
+    <div class="action"><strong>Action 1 &mdash; Pick ONE test encounter</strong> from Step 4's in-progress set and stamp it completed &gt; 7 days ago:</div>
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>Case c = [SELECT Id, CaseNumber FROM Case WHERE Archival_Status__c = 'Archiving In Progress' LIMIT 1];
+c.Archival_Status__c = 'Archive Completed';
+c.Archive_Completed_Date__c = Datetime.now().addDays(-8);
+update c;
+System.debug('Staged for delete: ' + c.CaseNumber + ' (' + c.Id + ')');
+Id caseId = c.Id;</pre></div>
+
+    <div class="action"><strong>Action 2 &mdash; Run the delete batch:</strong></div>
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>Id jobId = Database.executeBatch(new EncounterDeleteBatch(), 50);
+System.debug('Queued EncounterDeleteBatch, job=' + jobId);</pre></div>
+
+    <div class="action"><strong>Action 3 &mdash; After the batch completes (Setup &rarr; Apex Jobs), verify:</strong></div>
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>// The target case should be gone (and not in recycle bin from a Full Copy test context)
+Integer found = [SELECT COUNT() FROM Case WHERE Id = :caseId];
+System.debug('Target case after delete: ' + found + ' (expect 0)');
+
+Archive_Run__c run = [SELECT Run_Type__c, Run_Status__c, Records_Attempted__c,
+    Records_Succeeded__c, Records_Failed__c, Error_Log__c
+    FROM Archive_Run__c WHERE Run_Type__c = 'Delete' ORDER BY CreatedDate DESC LIMIT 1];
+System.debug('Delete run: ' + JSON.serializePretty(run));</pre></div>
+
+    <div class="result"><strong>Expected:</strong><br>
+      &bull; Target case row count = 0 (hard-deleted)<br>
+      &bull; Run_Type = <code>Delete</code>, Run_Status = <code>Completed</code>, Records_Succeeded &ge; 1<br>
+      &bull; Child Encounter_Payor / Financial_Activity / Document_Request / Code_Change rows for the deleted case are also gone (cascade)
+    </div>
+    <div class="actions">
+      <button class="btn btn-pass" onclick="mark(6,'passed')">Pass</button>
+      <button class="btn btn-fail" onclick="mark(6,'failed')">Fail</button>
+      <button class="btn btn-reset" onclick="mark(6,'')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STEP 7: VR GUARDRAIL -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="demo-step" id="step-7" data-status="">
+  <div class="demo-step-header" onclick="toggle(7)">
+    <div class="num">7</div>
+    <div class="title">Validation Rule Guardrail Still Works</div>
+    <span class="status-badge" style="display:none"></span>
+  </div>
+  <div class="demo-step-body">
+    <div class="talk-track"><strong>Purpose:</strong> The modified <code>Restrict_Modifying_Closed_Cases</code> VR should still block non-archival edits on closed cases for users without the <code>Titan_Health_Modify_Closed_Cases_CP</code> permission &mdash; but allow <code>Archival_Status__c</code> changes.</div>
+
+    <div class="action"><strong>Action 1 &mdash; Prove the guard still fires:</strong> Log in as a standard collector (no bypass permission). Open any closed encounter. Try to edit <code>Subject</code> or any non-archival field &rarr; Save.</div>
+    <div class="result"><strong>Expected:</strong> Save fails with the VR error: <em>"Only Supervisors or Program Administrators can modify/update a Closed Encounter."</em></div>
+
+    <div class="action"><strong>Action 2 &mdash; Prove the exemption works:</strong> As admin, run:</div>
+    <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>Case c = [SELECT Id, IsClosed, Archival_Status__c FROM Case
+    WHERE IsClosed = TRUE AND Archival_Status__c = NULL LIMIT 1];
+c.Archival_Status__c = 'Archiving In Progress';
+try {
+    update c;
+    System.debug('Archival status update on closed case: OK');
+} catch (DmlException e) {
+    System.debug('FAIL: ' + e.getMessage());
+}
+// Reset
+c.Archival_Status__c = null;
+update c;</pre></div>
+    <div class="result"><strong>Expected:</strong> The update succeeds. Debug logs <code>OK</code>.</div>
+    <div class="actions">
+      <button class="btn btn-pass" onclick="mark(7,'passed')">Pass</button>
+      <button class="btn btn-fail" onclick="mark(7,'failed')">Fail</button>
+      <button class="btn btn-reset" onclick="mark(7,'')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STEP 8: SUMMARY & SIGN-OFF -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="demo-step" id="step-8" data-status="">
+  <div class="demo-step-header" onclick="toggle(8)">
+    <div class="num">8</div>
+    <div class="title">Summary &amp; Sign-Off</div>
+    <span class="status-badge" style="display:none"></span>
+  </div>
+  <div class="demo-step-body">
+    <div class="warn-box"><strong>Schedulables are intentionally NOT activated in Full Copy.</strong> Production cutover runs:
+      <div class="code-block"><button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre>System.schedule('TH-345 Archive Job', '0 0 2 ? * SUN', new EncounterArchivalSchedulable());
+System.schedule('TH-345 Delete Job',  '0 0 4 ? * SUN', new EncounterDeleteSchedulable());</pre></div>
+      Only activate on Prod after UAT sign-off + go-live approval.
+    </div>
+
+    <h3>Validation Matrix</h3>
+    <table>
+      <tr><th>Scenario</th><th>Expected</th><th>Validated</th></tr>
+      <tr><td>Schema lands</td><td>All fields/objects/CMDT/VR present</td><td></td></tr>
+      <tr><td>Eligible data exists</td><td>&ge; 1 encounter closed 730+ days</td><td></td></tr>
+      <tr><td>All Apex tests pass</td><td>Green, no regressions</td><td></td></tr>
+      <tr><td>Archive batch flips statuses</td><td>In Progress count increases; audit row created</td><td></td></tr>
+      <tr><td>REST endpoint returns JSON</td><td>Correct shape; children + grandchildren included</td><td></td></tr>
+      <tr><td>Delete batch + buffer</td><td>Hard-delete after 7+ days; audit row created</td><td></td></tr>
+      <tr><td>VR guardrail + exemption</td><td>Non-archival edits blocked; archival edits allowed</td><td></td></tr>
+    </table>
+
+    <h3>Sign-Off</h3>
+    <table>
+      <tr><th>Role</th><th>Name</th><th>Date</th><th>Signature</th></tr>
+      <tr><td>SA (Relkor)</td><td>Bryant Daniels</td><td></td><td></td></tr>
+      <tr><td>Titan Health &mdash; Product</td><td>Andrea</td><td></td><td></td></tr>
+      <tr><td>Titan Health &mdash; Integration</td><td>Tim</td><td></td><td></td></tr>
+    </table>
+
+    <div class="actions">
+      <button class="btn btn-pass" onclick="mark(8,'passed')">Pass</button>
+      <button class="btn btn-fail" onclick="mark(8,'failed')">Fail</button>
+      <button class="btn btn-reset" onclick="mark(8,'')">Reset</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  TH-345 &mdash; Historic Archival Pipeline &mdash; Full Copy Validation &mdash; Relkor Cloud Solutions &mdash; April 2026<br>
+  <button class="btn btn-reset" onclick="resetAll()" style="margin-top:8px;">Reset All</button>
+</div>
+
+</div>
+
+<script>
+const ALL_IDS = ['1','2','3','4','5','6','7','8'];
+const TOTAL = ALL_IDS.length;
+function toggle(n) { document.getElementById('step-'+n).classList.toggle('open'); }
+function mark(n, s) {
+  const el = document.getElementById('step-'+n);
+  el.classList.remove('passed','failed'); el.setAttribute('data-status', s);
+  const badge = el.querySelector('.status-badge');
+  if (s==='passed') { el.classList.add('passed'); badge.textContent='PASS'; badge.style.display=''; }
+  else if (s==='failed') { el.classList.add('failed'); badge.textContent='FAIL'; badge.style.display=''; }
+  else { badge.style.display='none'; }
+  updateProgress();
+}
+function updateProgress() {
+  let p=0; ALL_IDS.forEach(id => { if(document.getElementById('step-'+id)?.getAttribute('data-status')==='passed') p++; });
+  document.getElementById('progressFill').style.width = Math.round((p/TOTAL)*100)+'%';
+  document.getElementById('progressText').textContent = p+' / '+TOTAL;
+}
+function resetAll() { ALL_IDS.forEach(id => { mark(id,''); document.getElementById('step-'+id)?.classList.remove('open'); }); document.getElementById('step-1').classList.add('open'); }
+function copyCode(btn) {
+  const pre = btn.parentElement.querySelector('pre');
+  navigator.clipboard.writeText(pre.textContent).then(() => { btn.textContent='Copied!'; btn.classList.add('copied'); setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied');},2000); });
+}
+</script>
+</body>
+</html>

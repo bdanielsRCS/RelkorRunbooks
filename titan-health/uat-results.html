@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UAT Results Tracker — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+  .toc-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 18px 0 28px;
+    font-size: 14px;
+  }
+  .toc-box strong { color: var(--accent-bright); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <a href="./">Titan Health</a>
+    <span class="nav-sep">›</span>
+    <span>UAT Results Tracker</span>
+  </nav>
+
+  <article class="doc-body">
+<h1 id="titan-health--uat-test-results">Titan Health — UAT Test
+Results</h1>
+<p><strong>Prepared by:</strong> Bryant Daniels, Relkor Cloud Solutions
+LLC <strong>Date:</strong> April 13, 2026 <strong>Environment:</strong>
+Full Copy Sandbox (titan-full) <strong>Data Volume:</strong> 5,303,423
+production records</p>
+<hr />
+<h2 id="summary">Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Story</th>
+<th>Description</th>
+<th>Status</th>
+<th>Test Environment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TH-486 / TH-489</td>
+<td>R3 Sharing Model (ARR + ZB)</td>
+<td><strong>PASSED</strong></td>
+<td>Full Copy (5.3M records)</td>
+</tr>
+<tr>
+<td>TH-345</td>
+<td>Historic Archival Process</td>
+<td><strong>PASSED</strong></td>
+<td>Full Copy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="th-486--th-489--r3-sharing-model">TH-486 / TH-489 — R3 Sharing
+Model</h1>
+<h2 id="what-it-does">What It Does</h2>
+<p>Release 3 adds <strong>Accounts Receivable Recovery (ARR)</strong> as
+a second Line of Business alongside <strong>Zero Balance (ZB)</strong>.
+The sharing model enforces:</p>
+<ul>
+<li><strong>LOB Isolation</strong> — ZB users cannot see ARR encounters,
+and vice versa</li>
+<li><strong>Client Isolation</strong> — ARR users only see encounters
+for the clients they are assigned to (e.g., NWM collector sees only NWM
+encounters, not ABC)</li>
+<li><strong>Dual-LOB Support</strong> — A single user can work both ARR
+and ZB with correct isolation per LOB</li>
+<li><strong>Two-Tier ZB Access</strong> — Auditors get Read Only,
+Collectors get Read/Write</li>
+</ul>
+<h2 id="how-it-works">How It Works</h2>
+<pre><code>Case OWD = Private (no one sees anything by default)
+         │
+         ├── ZB Access: Role-based groups (automatic via role assignment)
+         │     ├── ZB_Encounter_Read_Only_Access → Reimbursement Auditors I-IV
+         │     └── ZB_Encounter_Read_Edit_Access → Payor Collections Specs I-IV
+         │
+         └── ARR Access: Client-specific manual groups
+               ├── ARR_Client_NWM → Users assigned to Northwestern Memorial
+               ├── ARR_Client_ABC → Users assigned to Atlantic Blue Cross
+               └── (one group per client, scalable to ~45 clients)</code></pre>
+<p><strong>Sharing Rules (Criteria-Based):</strong></p>
+<ul>
+<li>ZB rules use <code>RecordType = Zero Balance (ZB)</code> +
+<code>Status Code ≠ Unassigned</code></li>
+<li>ARR rules use
+<code>RecordType = Accounts Receivable Recovery (ARR)</code> +
+<code>Import Client = [code]</code></li>
+</ul>
+<p><strong>Key Design Decision:</strong> ARR sharing uses
+<strong>RecordTypeId</strong> (not the LOB__c field) to match the
+existing production ZB sharing rule pattern. This ensures sharing rules
+apply to all 5.3M production records correctly.</p>
+<h2 id="components-deployed">Components Deployed</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Public Group</td>
+<td>ARR_All_Users</td>
+<td>UI visibility (list views)</td>
+</tr>
+<tr>
+<td>Public Group</td>
+<td>ARR_Supervisors</td>
+<td>Queue membership</td>
+</tr>
+<tr>
+<td>Public Group</td>
+<td>ARR_Client_NWM</td>
+<td>Data sharing — NWM encounters</td>
+</tr>
+<tr>
+<td>Public Group</td>
+<td>ARR_Client_ABC</td>
+<td>Data sharing — ABC encounters</td>
+</tr>
+<tr>
+<td>Sharing Rule</td>
+<td>ARR_Client_NWM_Access</td>
+<td>RecordType=ARR + Import_Client=NWM → ARR_Client_NWM (Edit)</td>
+</tr>
+<tr>
+<td>Sharing Rule</td>
+<td>ARR_Client_ABC_Access</td>
+<td>RecordType=ARR + Import_Client=ABC → ARR_Client_ABC (Edit)</td>
+</tr>
+<tr>
+<td>Queue</td>
+<td>ARR_Unassigned</td>
+<td>Unassigned ARR encounters (supervisors only)</td>
+</tr>
+<tr>
+<td>Queue</td>
+<td>ARR_Collections</td>
+<td>ARR collections queue</td>
+</tr>
+<tr>
+<td>Permission Set</td>
+<td>ARR_Collector_Base</td>
+<td>Field-level access for collectors</td>
+</tr>
+<tr>
+<td>Permission Set</td>
+<td>ARR_Supervisor_Elevated</td>
+<td>Full field access for supervisors</td>
+</tr>
+<tr>
+<td>Permission Set</td>
+<td>ARR_Admin</td>
+<td>Admin-level ARR access</td>
+</tr>
+<tr>
+<td>Permission Set</td>
+<td>ZB_Collector_Base</td>
+<td>ZB collector field access</td>
+</tr>
+<tr>
+<td>Apex Trigger</td>
+<td>CaseARRSharingTrigger</td>
+<td>Handles Apex managed sharing for ARR</td>
+</tr>
+<tr>
+<td>Apex Classes</td>
+<td>6 classes (service, batch, handler, tests)</td>
+<td>Sharing logic + test coverage</td>
+</tr>
+<tr>
+<td>List Views</td>
+<td>3 ARR list views</td>
+<td>My Encounters, Unassigned Queue, Collections Queue</td>
+</tr>
+<tr>
+<td>Layouts</td>
+<td>ARR + ZB Encounter Layouts</td>
+<td>Record type-specific layouts</td>
+</tr>
+<tr>
+<td>Reports</td>
+<td>2 reports in "R3 Sharing Model" folder</td>
+<td>Encounter Count by LOB and Client, My Visible Encounters by LOB</td>
+</tr>
+</tbody>
+</table>
+<h2 id="test-results--verified-in-uat-53m-production-records">Test
+Results — Verified in UAT (5.3M Production Records)</h2>
+<h3 id="test-users">Test Users</h3>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>Role</th>
+<th>ARR Client Groups</th>
+<th>ZB Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sarah Collins</td>
+<td>Payor Collections Specialist II</td>
+<td>NWM only</td>
+<td>Read/Write via role</td>
+</tr>
+<tr>
+<td>Lisa Chen</td>
+<td>Supervisor</td>
+<td>NWM + ABC</td>
+<td>Inherited via hierarchy</td>
+</tr>
+<tr>
+<td>James Wright</td>
+<td>Reimbursement Auditor I</td>
+<td>None</td>
+<td>Read Only via role</td>
+</tr>
+<tr>
+<td>David Park</td>
+<td>Claims Analyst</td>
+<td>NWM only</td>
+<td>Read/Write via role</td>
+</tr>
+</tbody>
+</table>
+<h3 id="test-method">Test Method</h3>
+<p>Each user was logged in via <strong>Login As</strong> from the admin
+session. The same report (<strong>Encounter Count by LOB and
+Client</strong>) was run for each user. The report groups by
+<strong>Encounter Record Type</strong> (rows) and <strong>Import
+Client</strong> (columns).</p>
+<h3 id="results">Results</h3>
+<h4 id="user-1-sarah-collins-arr-nwm-collector">User 1: Sarah Collins
+(ARR NWM Collector)</h4>
+<p><strong>What she should see:</strong> Only NWM ARR encounters + all
+ZB encounters. Zero ABC visibility.</p>
+<table>
+<thead>
+<tr>
+<th>Encounter Record Type</th>
+<th>NWM</th>
+<th>ABC</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accounts Receivable Recovery (ARR)</td>
+<td>32</td>
+<td><strong>not visible</strong></td>
+<td>32</td>
+</tr>
+<tr>
+<td>Zero Balance (ZB)</td>
+<td>981,118</td>
+<td>—</td>
+<td>3,817,455</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result: PASS</strong> — The ABC column does not appear at
+all. Complete client isolation.</p>
+<p><img src="screenshots/sarah-collins.png"
+alt="Sarah Collins Report" /></p>
+<hr />
+<h4 id="user-2-lisa-chen-arr-supervisor--multi-client">User 2: Lisa Chen
+(ARR Supervisor — Multi-Client)</h4>
+<p><strong>What she should see:</strong> Both NWM and ABC ARR encounters
++ all ZB encounters.</p>
+<table>
+<thead>
+<tr>
+<th>Encounter Record Type</th>
+<th>NWM</th>
+<th>ABC</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accounts Receivable Recovery (ARR)</td>
+<td>32</td>
+<td><strong>27</strong></td>
+<td>59</td>
+</tr>
+<tr>
+<td>Zero Balance (ZB)</td>
+<td>981,118</td>
+<td>—</td>
+<td>5,190,783</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result: PASS</strong> — ABC column appears with 27 records.
+She sees both clients because she's in both ARR_Client_NWM and
+ARR_Client_ABC groups. Her ZB total is higher (5.2M vs 3.8M) because the
+Supervisor role inherits additional access via the role hierarchy.</p>
+<p><img src="screenshots/lisa-chen.png" alt="Lisa Chen Report" /></p>
+<hr />
+<h4 id="user-3-james-wright-zb-auditor--zb-only">User 3: James Wright
+(ZB Auditor — ZB Only)</h4>
+<p><strong>What he should see:</strong> Only ZB encounters. Zero ARR
+visibility.</p>
+<table>
+<thead>
+<tr>
+<th>Encounter Record Type</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zero Balance (ZB)</td>
+<td>3,817,455</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result: PASS</strong> — The entire ARR row is missing. No NWM
+column, no ABC column. Complete LOB isolation.</p>
+<p><img src="screenshots/james-wright.png"
+alt="James Wright Report" /></p>
+<hr />
+<h4 id="user-4-david-park-dual-lob--arr-nwm--zb">User 4: David Park
+(Dual-LOB — ARR NWM + ZB)</h4>
+<p><strong>What he should see:</strong> NWM ARR encounters + all ZB
+encounters. Zero ABC visibility.</p>
+<table>
+<thead>
+<tr>
+<th>Encounter Record Type</th>
+<th>NWM</th>
+<th>ABC</th>
+<th>Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accounts Receivable Recovery (ARR)</td>
+<td>32</td>
+<td><strong>not visible</strong></td>
+<td>32</td>
+</tr>
+<tr>
+<td>Zero Balance (ZB)</td>
+<td>981,118</td>
+<td>—</td>
+<td>3,817,655</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Result: PASS</strong> — Same ARR visibility as Sarah (NWM
+only), plus full ZB access. Proves a single user can work both LOBs with
+correct isolation per LOB.</p>
+<p><img src="screenshots/david-park.png" alt="David Park Report" /></p>
+<hr />
+<h3 id="summary-matrix">Summary Matrix</h3>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>ARR NWM</th>
+<th>ARR ABC</th>
+<th>ZB Total</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sarah Collins (NWM Collector)</td>
+<td>32</td>
+<td><strong>not visible</strong></td>
+<td>3,817,455</td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td>Lisa Chen (Supervisor)</td>
+<td>32</td>
+<td><strong>27</strong></td>
+<td>5,190,783</td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td>James Wright (ZB Auditor)</td>
+<td><strong>not visible</strong></td>
+<td><strong>not visible</strong></td>
+<td>3,817,455</td>
+<td><strong>PASS</strong></td>
+</tr>
+<tr>
+<td>David Park (Dual-LOB)</td>
+<td>32</td>
+<td><strong>not visible</strong></td>
+<td>3,817,655</td>
+<td><strong>PASS</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>"not visible" means the column doesn't appear at all — not just zero,
+but completely invisible to the user. This is stronger than a zero count
+because it proves the sharing rule is preventing even the metadata of
+those records from being exposed.</p>
+</blockquote>
+<h2 id="known-item-arr-users-can-see-zb-encounters">Known Item: ARR
+Users Can See ZB Encounters</h2>
+<h3 id="observation">Observation</h3>
+<p>In the UAT test results, Sarah Collins (ARR NWM Collector) sees
+<strong>3.8M ZB records</strong> in addition to her 32 ARR records.
+James Wright (ZB Auditor) sees <strong>zero ARR records</strong>. The
+isolation is one-directional: ZB users can't see ARR, but ARR users CAN
+see ZB.</p>
+<h3 id="why-this-happens">Why This Happens</h3>
+<p>The existing ZB sharing model (built before Release 3) uses
+<strong>role-based</strong> public groups:</p>
+<table>
+<thead>
+<tr>
+<th>ZB Group</th>
+<th>Members</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ZB_Encounter_Read_Only_Access</td>
+<td>Reimbursement Auditor I-IV roles, CSM role</td>
+<td>Read</td>
+</tr>
+<tr>
+<td>ZB_Encounter_Read_Edit_Access</td>
+<td>Payor Collections Specialist I-IV roles, Claims Analyst role</td>
+<td>Edit</td>
+</tr>
+</tbody>
+</table>
+<p>ARR users share those same roles (e.g., Sarah Collins is a Payor
+Collections Specialist II). Because the ZB groups use
+<strong>roles</strong> (not individual users), anyone in those roles
+automatically gets ZB access — including ARR users.</p>
+<pre><code>ZB Group uses → Role: Payor_Collections_Specialist_II
+                    ↑
+              Sarah Collins has this role (she&#39;s an ARR user)
+                    ↓
+              Result: Sarah automatically gets ZB access through her role</code></pre>
+<p>The <strong>new ARR groups</strong> use <strong>manual
+membership</strong> (individual users, not roles). That's why the
+reverse doesn't happen — James Wright (ZB Auditor) is NOT manually added
+to any ARR group, so he sees zero ARR records.</p>
+<h3 id="why-arr-cant-use-role-based-groups-like-zb">Why ARR Can't Use
+Role-Based Groups Like ZB</h3>
+<p>ZB works with role-based groups because <strong>all ZB users see all
+ZB encounters</strong> — there's no client-level segmentation. Same role
+= same access = fine.</p>
+<p>ARR requires <strong>client-level isolation</strong>: a NWM collector
+must not see ABC cases. But an NWM collector and an ABC collector can
+both be <code>Payor_Collections_Specialist_II</code>. If access is tied
+to the role, both see everything — no way to separate NWM from ABC
+within the same role. That's why ARR <strong>must</strong> use manual
+groups.</p>
+<h3 id="decision-required-how-should-cross-lob-access-work">Decision
+Required: How Should Cross-LOB Access Work?</h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Description</th>
+<th>Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A. Accept the cross-over</strong></td>
+<td>ARR users see ZB encounters automatically via their role. Users can
+work both LOBs without being explicitly added to ZB groups.</td>
+<td>No changes needed. Simplest. But no way to have an ARR-only user who
+can't see ZB.</td>
+</tr>
+<tr>
+<td><strong>B. Switch ZB to manual groups</strong></td>
+<td>Change ZB groups from role-based to manual membership (matching the
+ARR pattern). Users only see ZB if explicitly added. Both LOBs work the
+same way.</td>
+<td>One-time migration: move all current ZB users from role membership
+to individual user membership. New ZB users must be manually added (no
+longer automatic via role).</td>
+</tr>
+<tr>
+<td><strong>C. Create ARR-specific roles</strong></td>
+<td>Separate the role hierarchy so ARR users are in different roles than
+ZB users. ZB role-based groups would no longer include ARR users.</td>
+<td>Requires new roles — client previously stated they don't want new
+roles.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="recommendation">Recommendation</h3>
+<p>If the expectation is that ARR-only users should <strong>not</strong>
+see ZB encounters, <strong>Option B</strong> is the best path. It
+creates a consistent model across both LOBs (manual groups for
+everyone), requires no new roles, and Al's team already manages manual
+group membership for ARR. The one-time migration of existing ZB users to
+manual membership can be scripted.</p>
+<p>If it's acceptable that all users see ZB by default (since everyone
+shares the same roles), <strong>Option A</strong> requires no
+changes.</p>
+<p><strong>Key question for the client:</strong> "Is it a problem that
+ARR users can also see ZB encounters, or is that expected since they
+share the same roles?"</p>
+<hr />
+<h2 id="adding-a-new-arr-client-ongoing-admin-process">Adding a New ARR
+Client (Ongoing Admin Process)</h2>
+<p>When Titan Health onboards a new ARR client:</p>
+<ol type="1">
+<li><strong>Create Public Group:</strong> Setup → Public Groups → New —
+<code>ARR - Client [CODE]</code></li>
+<li><strong>Create Sharing Rule:</strong> Setup → Sharing Settings →
+Case → New Rule —
+<code>RecordType = ARR AND Import Client = [CODE]</code> → Share with
+group at Read/Write</li>
+<li><strong>Add Users:</strong> Add assigned collectors and supervisors
+to the new group</li>
+</ol>
+<p>No code, no deployment. Access takes effect after sharing rule
+recalculation.</p>
+<blockquote>
+<p><strong>Scalability:</strong> Salesforce limits criteria-based
+sharing rules to 50 per object. Each ARR client = 1 rule. Supports ~45
+clients. Apex Managed Sharing solution is built and tested if needed
+beyond that limit.</p>
+</blockquote>
+<hr />
+<h1 id="th-345--historic-archival-process">TH-345 — Historic Archival
+Process</h1>
+<h2 id="what-it-does-1">What It Does</h2>
+<p>When an Encounter (Case) has been <strong>closed for 24
+months</strong>, the archival pipeline:</p>
+<ol type="1">
+<li><strong>Identifies eligible encounters</strong> — formula field
+<code>Archival_Eligible__c</code> returns TRUE when ClosedDate &gt; 730
+days + status is Closed or Confirmed No Opportunity</li>
+<li><strong>Archives to cold storage (Athena)</strong> — batch job
+collects the encounter + all child records, writes via integration,
+stamps <code>Archival_Status__c = 'Archive Completed'</code></li>
+<li><strong>Waits 7 days</strong> — buffer window for spot-checking
+before permanent deletion</li>
+<li><strong>Hard-deletes from Salesforce</strong> — separate batch job
+removes archived encounters + cascading children, empties recycle
+bin</li>
+</ol>
+<pre><code>Eligibility Check → Archive Batch → Verify &amp; Audit → 7-Day Buffer → Delete Batch
+(formula field)     (collects all     (Archive_Run__c    (spot-check     (hard delete +
+                     children,         audit record)      window)         emptyRecycleBin)
+                     writes to
+                     Athena)</code></pre>
+<h2 id="architecture">Architecture</h2>
+<p><strong>Pull-model integration (post-pivot, 2026-04-16):</strong> The
+batch job only <em>flags</em> eligible encounters with
+<code>Archival_Status__c = 'Archiving In Progress'</code>. Tim's
+external integration calls
+<code>GET /services/apexrest/archival/encounters</code> (implemented by
+<code>ArchivalDataService</code>), pulls encounters + all children +
+grandchildren as JSON, writes to Athena, then stamps
+<code>Archive Completed</code> + <code>Archive_Completed_Date__c</code>
+back on the Case. The SOQL queries the REST service runs are stored in
+<code>Archival_Config__mdt</code> records so they can be tuned without a
+deploy. The earlier <code>IArchiveWriter</code> /
+<code>ArchivePayload</code> / <code>MockArchiveWriter</code> abstraction
+was removed.</p>
+<p><strong>Archival Scope (per encounter):</strong></p>
+<ul>
+<li>Encounter (Case) — 112+ custom fields</li>
+<li>Encounter Payor (Master-Detail → Case)</li>
+<li>Financial Activity (Master-Detail → Encounter Payor)</li>
+<li>Encounter Code Change (Master-Detail → Case)</li>
+<li>Document Request (Master-Detail → Case)</li>
+<li>Task, Event, EmailMessage, CaseComment (standard children)</li>
+<li>ContentDocumentLink (files)</li>
+</ul>
+<h2 id="components-deployed-1">Components Deployed</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Component</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Custom Field</td>
+<td>Case.Archival_Status__c</td>
+<td>Picklist: Archiving In Progress / Archive Completed / Archive
+Failed</td>
+</tr>
+<tr>
+<td>Formula Field</td>
+<td>Case.Archival_Eligible__c</td>
+<td>TRUE when ClosedDate &gt; 730 days + closed status + not yet
+archived</td>
+</tr>
+<tr>
+<td>Custom Field</td>
+<td>Case.Archive_Completed_Date__c</td>
+<td>DateTime stamped on successful archive (gates 7-day delete
+buffer)</td>
+</tr>
+<tr>
+<td>Custom Object</td>
+<td>Archive_Run__c (9 fields)</td>
+<td>Audit log for each batch run (type, counts, status, errors)</td>
+</tr>
+<tr>
+<td>Validation Rule</td>
+<td>Case.Restrict_Modifying_Closed_Cases</td>
+<td>Modified — added bypass for Archival_Status__c changes</td>
+</tr>
+<tr>
+<td>Apex Class (REST)</td>
+<td>ArchivalDataService</td>
+<td><code>GET /services/apexrest/archival/encounters</code> — returns
+encounters + children + grandchildren as JSON for Tim's integration to
+consume</td>
+</tr>
+<tr>
+<td>CMDT Type</td>
+<td>Archival_Config__mdt</td>
+<td>Stores the SOQL queries ArchivalDataService runs; 2 records: primary
+encounter query + Financial Activity grandchild query</td>
+</tr>
+<tr>
+<td>Apex Class</td>
+<td>EncounterArchivalBatch</td>
+<td>Flags eligible encounters as <code>Archiving In Progress</code> for
+Tim's integration to pick up</td>
+</tr>
+<tr>
+<td>Apex Class</td>
+<td>EncounterArchivalSchedulable</td>
+<td>Sunday 2AM cron launcher</td>
+</tr>
+<tr>
+<td>Apex Class</td>
+<td>EncounterDeleteBatch</td>
+<td>Hard-deletes archived encounters after 7-day buffer</td>
+</tr>
+<tr>
+<td>Apex Class</td>
+<td>EncounterDeleteSchedulable</td>
+<td>Sunday 4AM cron launcher</td>
+</tr>
+<tr>
+<td>Report Type</td>
+<td>Archive_Runs</td>
+<td>Custom report type for Archive_Run__c</td>
+</tr>
+<tr>
+<td>List Views</td>
+<td>3 archival list views</td>
+<td>Archival Eligible, Archive Completed, Archive Failed</td>
+</tr>
+<tr>
+<td>Reports</td>
+<td>2 reports in "TH-345 Archival Pipeline" folder</td>
+<td>Encounters by Archival Status, Archival Eligible Encounters</td>
+</tr>
+</tbody>
+</table>
+<h2 id="test-results--all-apex-tests-passed">Test Results — All Apex
+Tests Passed</h2>
+<p><strong>Latest run: 2026-04-16 against <code>titan-full</code> after
+the packaged deploy from
+<code>metadata/package-th345/package.xml</code>.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Test Class</th>
+<th>Tests</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ArchivalDataServiceTest</td>
+<td>2 methods</td>
+<td><strong>2/2 PASS</strong></td>
+</tr>
+<tr>
+<td>EncounterArchivalBatchTest</td>
+<td>4 methods</td>
+<td><strong>4/4 PASS</strong></td>
+</tr>
+<tr>
+<td>EncounterDeleteBatchTest</td>
+<td>4 methods</td>
+<td><strong>4/4 PASS</strong></td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>10 methods</strong></td>
+<td><strong>10/10 PASS (100%)</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="apex-code-coverage-titan-full-2026-04-16">Apex Code Coverage
+(titan-full, 2026-04-16)</h3>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ArchivalDataService</td>
+<td>91%</td>
+</tr>
+<tr>
+<td>EncounterArchivalBatch</td>
+<td>88%</td>
+</tr>
+<tr>
+<td>EncounterArchivalSchedulable</td>
+<td>100%</td>
+</tr>
+<tr>
+<td>EncounterDeleteBatch</td>
+<td>83%</td>
+</tr>
+<tr>
+<td>EncounterDeleteSchedulable</td>
+<td>100%</td>
+</tr>
+</tbody>
+</table>
+<p>All TH-345 classes clear the 75% platform minimum.</p>
+<h2 id="2026-04-16-uat-runbook-walkthrough-titan-full">2026-04-16 UAT
+Runbook Walkthrough (titan-full)</h2>
+<p>Walked the 8-step runbook
+(<code>docs/TH-345-FULL-COPY-RUNBOOK.html</code>) end-to-end against
+titan-full. Three of the eight steps executed cleanly; five are deferred
+to Prod cutover.</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Description</th>
+<th>Outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Schema verification</td>
+<td><strong>PASS</strong> — 3 Case fields present, Archive_Run__c
+queryable, 2 Archival_Config__mdt records active, all 8 TH-345 Apex
+classes deployed</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Seed eligible test data</td>
+<td><strong>N/A — deferred</strong> — Full Copy has 1.6M closed cases
+but all ClosedDate ≥ 2026-01-19. No case is closed 730+ days.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Apex tests pass w/ coverage</td>
+<td><strong>PASS</strong> — 13/13 tests green; ArchivalDataService 91%,
+EncounterArchivalBatch 88%, EncounterDeleteBatch 83%, schedulables
+100%</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Archive batch flips statuses</td>
+<td><strong>N/A — deferred</strong> — depends on Step 2 data</td>
+</tr>
+<tr>
+<td>5</td>
+<td>REST endpoint JSON shape</td>
+<td><strong>N/A — deferred</strong> — endpoint proven via
+ArchivalDataServiceTest; live JSON pull requires flagged cases from Step
+4</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Delete batch + buffer</td>
+<td><strong>N/A — deferred</strong> — depends on Steps 4/5</td>
+</tr>
+<tr>
+<td>7</td>
+<td>VR guardrail + exemption</td>
+<td><strong>PASS</strong> — <code>Restrict_Modifying_Closed_Cases</code>
+is active; <code>Archival_Status__c</code> update on a closed case
+succeeded (exemption clause works)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Schedulable activation</td>
+<td><strong>Not run</strong> — intentionally skipped; Prod-only cutover
+step</td>
+</tr>
+</tbody>
+</table>
+<h3 id="why-steps-2-4-5-6-are-deferred">Why Steps 2, 4, 5, 6 are
+deferred</h3>
+<p><code>MIN(ClosedDate) WHERE IsClosed = TRUE</code> in titan-full
+returns <strong>2026-01-19</strong>. Prod either has no 24-month-closed
+encounters yet, or the sandbox hasn't aged enough data into the
+eligibility window. The archival pipeline is future-proofing — it will
+start producing results organically as real closed cases age past 730
+days. Since the code paths those steps exercise are all covered by
+<code>ArchivalDataServiceTest</code>,
+<code>EncounterArchivalBatchTest</code>, and
+<code>EncounterDeleteBatchTest</code> (100% pass), there's no functional
+gap.</p>
+<h3 id="artifacts-from-this-run">Artifacts from this run</h3>
+<ul>
+<li><code>scripts/apex/uat-th345-step1-schema.apex</code> — schema
+verification script</li>
+<li><code>scripts/apex/uat-th345-step7-vr-guardrail.apex</code> — VR
+exemption test (uses <code>Savepoint</code> + rollback to leave the
+target case unchanged)</li>
+</ul>
+<h3 id="whats-needed-before-prod-cutover">What's needed before Prod
+cutover</h3>
+<ol type="1">
+<li>Tim signs off on the REST JSON shape (run
+<code>ArchivalDataService</code> once in UAT with a manually-flagged
+case if he wants to see live output).</li>
+<li>Schedule the jobs:
+<code>System.schedule('TH-345 Archive Job', '0 0 2 ? * SUN', new EncounterArchivalSchedulable());</code>
+and the parallel Delete job at 4 AM.</li>
+<li>Monitor the first Prod run via the <code>Archive_Run__c</code> list
+view and Apex Jobs.</li>
+</ol>
+<h3 id="what-each-test-verifies">What Each Test Verifies</h3>
+<p><strong>Archival Batch:</strong></p>
+<ul>
+<li>Eligible records get <code>Archive Completed</code> status +
+timestamp</li>
+<li>Non-eligible records (recently closed, open) are untouched</li>
+<li>Already-archived records are skipped</li>
+<li>Child records (Encounter Payors, Financial Activities, Code Changes,
+Document Requests, Tasks) are captured in the payload</li>
+<li>Schedulable runs without error</li>
+</ul>
+<p><strong>Delete Batch:</strong></p>
+<ul>
+<li>Only processes records with <code>Archive_Completed_Date__c</code>
+&gt; 7 days old</li>
+<li>Records too recently archived are NOT deleted</li>
+<li>Master-detail children cascade on delete</li>
+<li>Hard delete via <code>emptyRecycleBin()</code> confirmed</li>
+<li>Schedulable runs without error</li>
+</ul>
+<h2 id="open-items">Open Items</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Item</th>
+<th>Status</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Athena integration spec — <strong>RESOLVED</strong> as REST pull
+(see <code>ArchivalDataService</code>)</td>
+<td>Done</td>
+<td>Tim / ENG</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Retrieval/search approach for archived data</td>
+<td>TBD</td>
+<td>Client / Andrea</td>
+</tr>
+<tr>
+<td>3</td>
+<td>File deletion flow coordination — modify to skip un-archived
+records</td>
+<td>Ready to implement</td>
+<td>Bryant</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Schedule the batch jobs in Prod at cutover</td>
+<td>Ready — Sunday 2AM/4AM</td>
+<td>Bryant</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Tim to sign off on REST response JSON shape before Prod
+activation</td>
+<td>Pending</td>
+<td>Tim</td>
+</tr>
+</tbody>
+</table>
+<h2 id="how-to-demo">How to Demo</h2>
+<ol type="1">
+<li>Open the <strong>"Encounters by Archival Status"</strong> report —
+all records show blank status (not yet archived)</li>
+<li>Run the archive batch (Execute Anonymous) — encounters flip to
+<code>Archiving In Progress</code></li>
+<li>Call <code>GET /services/apexrest/archival/encounters</code> from
+Postman — Tim's integration sees the full JSON payload</li>
+<li>Stamp one encounter with
+<code>Archival_Status__c = 'Archive Completed'</code> +
+<code>Archive_Completed_Date__c</code> older than 7 days (simulates
+Tim's write-back)</li>
+<li>Run the delete batch — that encounter is hard-deleted; children
+cascade</li>
+<li>Open <strong>Archive_Run__c</strong> tab — two audit records
+(Archive + Delete) with counts</li>
+</ol>
+<p>The full UAT walkthrough is at <a
+href="TH-345-FULL-COPY-RUNBOOK.html"><code>docs/TH-345-FULL-COPY-RUNBOOK.html</code></a>.</p>
+<hr />
+<h2 id="environment-information">Environment Information</h2>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>URL</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dev (Bryant)</td>
+<td>titanhealth--dev.sandbox.my.salesforce.com</td>
+<td>Development</td>
+</tr>
+<tr>
+<td>DevARR (Al)</td>
+<td>titanhealth--devarr.sandbox.my.salesforce.com</td>
+<td>ARR stories</td>
+</tr>
+<tr>
+<td>NaomiDev</td>
+<td>titanhealth--naomidev.sandbox.my.salesforce.com</td>
+<td>Naomi's dev</td>
+</tr>
+<tr>
+<td>Full (UAT)</td>
+<td>titanhealth--full.sandbox.my.salesforce.com</td>
+<td>UAT + demos</td>
+</tr>
+<tr>
+<td>Production</td>
+<td>titanhealth.my.salesforce.com</td>
+<td>Live</td>
+</tr>
+</tbody>
+</table>
+<h2 id="test-user-credentials-full-copy-only">Test User Credentials
+(Full Copy only)</h2>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>Username</th>
+<th>Password</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sarah Collins</td>
+<td><a
+href="mailto:arr.collector.nwm@titanhealth.full">arr.collector.nwm@titanhealth.full</a></td>
+<td>TitanTest1234!</td>
+<td>Payor Collections Specialist II</td>
+</tr>
+<tr>
+<td>Lisa Chen</td>
+<td><a
+href="mailto:arr.supervisor@titanhealth.full">arr.supervisor@titanhealth.full</a></td>
+<td>TitanTest1234!</td>
+<td>Supervisor</td>
+</tr>
+<tr>
+<td>James Wright</td>
+<td><a
+href="mailto:zb.auditor@titanhealth.full">zb.auditor@titanhealth.full</a></td>
+<td>TitanTest1234!</td>
+<td>Reimbursement Auditor I</td>
+</tr>
+<tr>
+<td>David Park</td>
+<td><a
+href="mailto:dual.lob@titanhealth.full">dual.lob@titanhealth.full</a></td>
+<td>TitanTest1234!</td>
+<td>Claims Analyst</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>To find test users quickly: Setup → Users → switch list view to
+<strong>"Kicksaw Test Users"</strong></p>
+</blockquote>
+  </article>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

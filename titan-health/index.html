@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Titan Health — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <span>Titan Health</span>
+  </nav>
+
+  <header class="page-header">
+    <div class="eyebrow">Titan Health · Salesforce R3</div>
+    <h1 class="title">🏥 Titan Health</h1>
+    <p class="lede">Salesforce Release 3 deliverables: ARR sharing model, historic encounter archival pipeline, Sprint 2 ARR features. Both R3 baseline and Sprint 2 are deployed to UAT and ready for production cutover.</p>
+  </header>
+
+  <div class="hero-banner">
+    <h3>📘 Start here</h3>
+    <p>The <strong><a href="handoff.html">Complete Project Handoff</a></strong> is the single source of truth — project context, architecture, what shipped (10 stories across two waves), current org state, operational runbook, cutover plan, open items, glossary. Everything else on this page is referenced from there.</p>
+  </div>
+
+  <h2 class="section-heading">Handoff <span class="count">1</span></h2>
+
+  <div class="tile-grid">
+
+    <a href="handoff.html" class="tile">
+      <span class="tile-ribbon active">primary</span>
+      <span class="tile-icon">📘</span>
+      <div class="tile-title">Complete Project Handoff</div>
+      <div class="tile-desc">Comprehensive overview spanning R3 baseline (TH-486/489 sharing model, TH-521 Payor lookups, TH-345 archival) and Sprint 2 (TH-477, TH-577, TH-581, TH-583, TH-584, TH-585, TH-586). Architecture, conventions, cutover plan, open items.</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML</span>
+        <span>Updated 2026-05-01</span>
+      </div>
+    </a>
+
+  </div>
+
+  <h2 class="section-heading">Architecture &amp; Design <span class="count">2</span></h2>
+
+  <div class="tile-grid">
+
+    <a href="sharing-model.html" class="tile">
+      <span class="tile-ribbon active">design</span>
+      <span class="tile-icon">🔐</span>
+      <div class="tile-title">Sharing Model — Solution Design</div>
+      <div class="tile-desc">Full design rationale for the R3 sharing model. Two LOBs (ZB + ARR) in one org with client-level isolation. Criteria-based sharing rules, BU-prefixed roles, layered permission architecture. Addresses Mitch's #1 risk (ZB-to-ARR data leak).</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML</span>
+        <span>TH-486 · TH-489</span>
+      </div>
+    </a>
+
+    <a href="implementation-stories.html" class="tile">
+      <span class="tile-ribbon active">design</span>
+      <span class="tile-icon">📋</span>
+      <div class="tile-title">Implementation Stories</div>
+      <div class="tile-desc">Story-by-story implementation plan that drove the R3 build. What got built, why, and the decision trail behind it.</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML</span>
+        <span>R3 plan</span>
+      </div>
+    </a>
+
+  </div>
+
+  <h2 class="section-heading">TH-345 — Archival Pipeline <span class="count">2</span></h2>
+
+  <div class="tile-grid">
+
+    <a href="th-345-solution-design.html" class="tile">
+      <span class="tile-ribbon active">design</span>
+      <span class="tile-icon">🗄️</span>
+      <div class="tile-title">TH-345 — Solution Design</div>
+      <div class="tile-desc">Historic Encounter Archival pipeline design: REST integration to Athena, configurable SOQL queries via CMDT, batch + schedulable jobs, 7-day safety window before hard-delete, audit log on every run.</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML</span>
+        <span>TH-345</span>
+      </div>
+    </a>
+
+    <a href="th-345-uat-runbook.html" class="tile">
+      <span class="tile-ribbon active">runbook</span>
+      <span class="tile-icon">🧪</span>
+      <div class="tile-title">TH-345 — UAT Runbook (interactive)</div>
+      <div class="tile-desc">8-step interactive UAT runbook for the archival pipeline. Walks through schema verification, seeding test encounters, manual batch run, REST endpoint check, hard-delete confirmation, VR exemption, audit log inspection. Pass/fail state saves in-browser.</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML · interactive</span>
+        <span>TH-345</span>
+      </div>
+    </a>
+
+  </div>
+
+  <h2 class="section-heading">R3 Baseline Stories <span class="count">2</span></h2>
+
+  <div class="tile-grid">
+
+    <a href="th-486-lob-access.html" class="tile">
+      <span class="tile-ribbon active">spec</span>
+      <span class="tile-icon">🛡️</span>
+      <div class="tile-title">TH-486 — LOB Access Configuration</div>
+      <div class="tile-desc">Configuration spec for ARR client-isolated access: 4 new public groups (Christus + NWM teams + supervisors), sharing rules keyed on Record Type + Client + Status, perm sets + PSGs.</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML</span>
+        <span>TH-486</span>
+      </div>
+    </a>
+
+    <a href="th-489-unassigned-restriction.html" class="tile">
+      <span class="tile-ribbon active">spec</span>
+      <span class="tile-icon">⏸️</span>
+      <div class="tile-title">TH-489 — Unassigned Encounter Restriction</div>
+      <div class="tile-desc">Triage step: newly-arrived ARR encounters are visible only to client supervisors until status moves past "Newly Unassigned." Two supervisor-scoped sharing rules + matching list views.</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML</span>
+        <span>TH-489</span>
+      </div>
+    </a>
+
+  </div>
+
+  <h2 class="section-heading">Operational <span class="count">2</span></h2>
+
+  <div class="tile-grid">
+
+    <a href="change-log.html" class="tile">
+      <span class="tile-ribbon active">live</span>
+      <span class="tile-icon">📜</span>
+      <div class="tile-title">Change Log</div>
+      <div class="tile-desc">Deployment ledger across both waves. What was deployed, when, by whom, and to which org. Pre-cutover dashboard for the prod release.</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML</span>
+        <span>10 entries</span>
+      </div>
+    </a>
+
+    <a href="uat-results.html" class="tile">
+      <span class="tile-ribbon active">tracker</span>
+      <span class="tile-icon">✅</span>
+      <div class="tile-title">UAT Results Tracker</div>
+      <div class="tile-desc">UAT pass/fail tracker for the R3 baseline stories, including walkthrough notes from the 2026-04-16 walkthrough (3 passes, 5 deferred items).</div>
+      <div class="tile-meta">
+        <span class="chip html">HTML</span>
+        <span>R3 baseline UAT</span>
+      </div>
+    </a>
+
+  </div>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>. Source: <a href="https://github.com/bdanielsRCS/titan-health" target="_blank" rel="noopener">github.com/bdanielsRCS/titan-health</a> (private).</p>
+  </footer>
+
+</div>
+</body>
+</html>

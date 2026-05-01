@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Change Log — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+  .toc-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 18px 0 28px;
+    font-size: 14px;
+  }
+  .toc-box strong { color: var(--accent-bright); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <a href="./">Titan Health</a>
+    <span class="nav-sep">›</span>
+    <span>Change Log</span>
+  </nav>
+
+  <article class="doc-body">
+<h1 id="titan-health--change-log">Titan Health — Change Log</h1>
+<p>Track all changes before promoting to UAT (Full Copy) or
+Production.</p>
+<h2 id="how-to-use">How to Use</h2>
+<ol type="1">
+<li><strong>Before you deploy to Full/Prod</strong>, add your change
+below</li>
+<li>Include: what changed, which story, who did it, what org it was
+tested in</li>
+<li>Mark it as deployed once it's in UAT/Prod</li>
+</ol>
+<hr />
+<h2 id="pending-ready-for-uat">Pending (Ready for UAT)</h2>
+<p><em>Nothing pending</em></p>
+<hr />
+<h2 id="in-uat-titan-full--ready-for-prod">In UAT (titan-full) — Ready
+for Prod</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Developer</th>
+<th>Story</th>
+<th>Change</th>
+<th>Components</th>
+<th>Tested In</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-04-08</td>
+<td>Bryant</td>
+<td>TH-486/489</td>
+<td>R3 Sharing Model: ARR client-specific groups, sharing rules
+(RecordTypeId-based), permission sets, queues, list views</td>
+<td>Groups (4), Sharing Rules (2), Perm Sets (4), PSGs (3), Queues (2),
+List Views (3), Apex (6 classes + 1 trigger), Layouts (2)</td>
+<td>titan-dev</td>
+</tr>
+<tr>
+<td>2026-04-16</td>
+<td>Bryant</td>
+<td>TH-345</td>
+<td>Historic Archival Pipeline packaged for UAT: REST data service,
+archive + delete batch/schedulables, Archive_Run__c audit object,
+CMDT-driven query config, formula + status fields on Case, VR exemption
+for archival status updates. Manifest at
+<code>metadata/package-th345/package.xml</code>; runbook at
+<code>docs/TH-345-FULL-COPY-RUNBOOK.html</code>.</td>
+<td>Apex (7 classes), Archive_Run__c + 9 fields, Archival_Config__mdt +
+3 fields + 2 records, Case fields (3), List Views (3), VR (1 modified —
+Restrict_Modifying_Closed_Cases), Report Type (1)</td>
+<td>titan-dev</td>
+</tr>
+<tr>
+<td>2026-04-11</td>
+<td>Bryant</td>
+<td>TH-521</td>
+<td>Payor lookup filter (RecordType=Payor) + validation rules for Client
++ LOB enforcement</td>
+<td>Encounter_Payor__c: Payor_Name__c (modified), VRs (2 new)</td>
+<td>titan-dev</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Bryant</td>
+<td>TH-477</td>
+<td>ARR-specific fields on Encounter (foundation): Placement_Date,
+Sec/Ter Payor (Imported), Pri/Sec/Ter Payor Balance (Imported),
+Client_Epic_Work_Queue, Has_Encounter_Payors helper formula. EP
+formulas: Imp_Balance, Net_Balance. Page-layout placements per AC.</td>
+<td>Case fields (8 new + 2 existing updated), EP fields (2 new
+formulas), FlexiPage updates (ARR Encounter Record Page, EP Record
+Page)</td>
+<td>titan-dev</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Bryant</td>
+<td>TH-577</td>
+<td>xD field cleanup. Deleted 5 Case xD fields + 1 EP xD field. Removed
+corresponding references from ARR Encounter and EP Lightning pages.
+EP.xD_Payor_Balance had data on 14,258 records — deleted (recycle bin
+retains for 15 days).</td>
+<td>Case fields deleted (5), EP fields deleted (1), FlexiPages updated
+(2)</td>
+<td>titan-full direct</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Bryant</td>
+<td>TH-581</td>
+<td><code>Assigned_Discharge_Age__c</code> formula updated to use
+<code>Placement_Date__c</code> with blank check returning 0</td>
+<td>Case formula field (1 modified)</td>
+<td>titan-dev</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Bryant</td>
+<td>TH-583</td>
+<td>Compact Layout (added Titan_Net_Balance), Lightning page button
+visibility (Has_Encounter_Payors-driven), EP Financial Class
+formula</td>
+<td>Case CompactLayout (1 modified), FlexiPage (1 modified), EP formula
+field (1 new)</td>
+<td>titan-dev</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Bryant</td>
+<td>TH-584</td>
+<td>Status Codes for ARR ("ARR - Offshore Adjustment Review", "ARR -
+Sent to Coding") + Encounter Guidance records (2) routing them. RT
+picklistValues updated to allow new values.</td>
+<td>Status_Code_GVS (2 new values), Case_Status_Category__c picklist
+(Dev only — UAT had it), Expected_Record_Owner__c picklist (1 new),
+ARR_Encounter_Guidance RT (picklistValues), Encounter_Guidance__c
+records (2 new)</td>
+<td>titan-dev</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Bryant</td>
+<td>TH-585</td>
+<td>3 new Adjustment Codes (MUE, Bundling, Contractual Variance) added
+to GVS for ARR-only use by convention</td>
+<td>Adjustment_Codes_GVS (3 new values)</td>
+<td>titan-dev</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Bryant</td>
+<td>TH-586</td>
+<td>Queue + List View "ARR - Offshore Adjustment Review" with
+ARR_Supervisors_NWM as members. Queue scope on List View, ARR record
+type filter, Status Code filter, 7 columns.</td>
+<td>Queue (1 new), GroupMember (1 — added via Tooling API), Case
+ListView (1 new)</td>
+<td>titan-dev</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="in-production">In Production</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Developer</th>
+<th>Story</th>
+<th>Change</th>
+<th>Deployed By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Nothing deployed yet</em></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="sandbox-assignments">Sandbox Assignments</h2>
+<table>
+<thead>
+<tr>
+<th>Sandbox</th>
+<th>Type</th>
+<th>Developer</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dev</td>
+<td>Developer</td>
+<td>Bryant Daniels</td>
+<td>Primary development (sharing model, archival, solutions)</td>
+</tr>
+<tr>
+<td>DevARR</td>
+<td>Developer</td>
+<td>Al Reveles</td>
+<td>ARR story development</td>
+</tr>
+<tr>
+<td>AdminDev</td>
+<td>Developer</td>
+<td>Al Reveles</td>
+<td>Admin/config work</td>
+</tr>
+<tr>
+<td>NaomiDev</td>
+<td>Developer</td>
+<td>Naomi</td>
+<td>Dev sandbox (provisioning — ready Monday 4/14)</td>
+</tr>
+<tr>
+<td>Full</td>
+<td>Full Copy</td>
+<td>Shared</td>
+<td>UAT / Client demos</td>
+</tr>
+<tr>
+<td>Partial</td>
+<td>Partial Copy</td>
+<td>—</td>
+<td>Available for additional testing</td>
+</tr>
+</tbody>
+</table>
+<h2 id="deployment-rules">Deployment Rules</h2>
+<ol type="1">
+<li><strong>Never deploy directly to Prod</strong> — always go through
+Full (UAT) first</li>
+<li><strong>Test in your Dev sandbox</strong> before promoting to
+Full</li>
+<li><strong>Log every change</strong> in this file before deploying to
+Full</li>
+<li><strong>Run all Apex tests</strong> in Full after deploying:
+<code>sf apex run test --target-org titan-full --result-format human</code></li>
+<li><strong>Al's admin changes</strong> in prod should be retrieved and
+added to source:
+<code>sf project retrieve start --metadata "CustomField:Case.FieldName" --target-org titan-prod</code></li>
+<li><strong>Conflicts</strong>: If two developers modify the same
+component, the second deployer must retrieve the latest from Full before
+deploying</li>
+</ol>
+<h2 id="deploy-commands">Deploy Commands</h2>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Deploy from your dev to Full (UAT)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="at">--source-dir</span> metadata/force-app/main <span class="at">--target-org</span> titan-full</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="at">--source-dir</span> metadata/force-app/phase2 <span class="at">--target-org</span> titan-full</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Deploy from source to Prod (after UAT approval)</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="at">--source-dir</span> metadata/force-app/main <span class="at">--target-org</span> titan-prod</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="at">--source-dir</span> metadata/force-app/phase2 <span class="at">--target-org</span> titan-prod</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Retrieve Al&#39;s prod changes into source</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project retrieve start <span class="at">--metadata</span> <span class="st">&quot;CustomField:Case.NewField__c&quot;</span> <span class="at">--target-org</span> titan-prod <span class="at">--output-dir</span> retrieve-tmp</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Run all tests</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> apex run test <span class="at">--target-org</span> titan-full <span class="at">--result-format</span> human</span></code></pre></div>
+  </article>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

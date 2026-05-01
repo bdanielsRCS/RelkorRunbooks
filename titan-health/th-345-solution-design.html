@@ -1,0 +1,2136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TH-345 — Archival Pipeline Solution
+Design — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+  .toc-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 18px 0 28px;
+    font-size: 14px;
+  }
+  .toc-box strong { color: var(--accent-bright); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <a href="./">Titan Health</a>
+    <span class="nav-sep">›</span>
+    <span>TH-345 — Archival Pipeline Solution Design</span>
+  </nav>
+
+  <article class="doc-body">
+<h1 id="th-345--historic-archival-process-solution-design">TH-345 —
+Historic Archival Process: Solution Design</h1>
+<p><strong>Story:</strong> TH-345 [FF] Historic Archival Process
+<strong>Author:</strong> Bryant Daniels (SA), consolidating original
+notes by Mitch <strong>Date:</strong> 2026-04-06
+<strong>Status:</strong> Draft — Pending ENG integration spec + client
+scope decisions <strong>Related:</strong> TH-221 (Data Archival
+Process)</p>
+<hr />
+<h2 id="1-business-requirement">1. Business Requirement</h2>
+<p>When an Encounter has been <strong>closed for 24 months</strong>, it
+should be archived to cold storage (Athena) and then hard-deleted from
+Salesforce.</p>
+<p><strong>Closed</strong> means the Encounter has a Status of:</p>
+<ul>
+<li><code>Closed</code>, OR</li>
+<li><code>Confirmed No Opportunity</code></li>
+</ul>
+<p>Both statuses set the <code>ClosedDate</code> field. The
+<strong>ClosedDate is the single trigger</strong> — the 24-month timer
+starts when ClosedDate is populated, regardless of which closed status
+was applied.</p>
+<p>If an Encounter is <strong>reopened</strong> (status changed back
+from a closed status), the ClosedDate must reset, restarting the timer
+when it's eventually re-closed.</p>
+<p>Data must only be <strong>hard-deleted</strong> from Salesforce after
+the archive write to Athena has been verified.</p>
+<hr />
+<h2 id="2-solution-overview">2. Solution Overview</h2>
+<p>The archival process consists of three components:</p>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    SALESFORCE (Apex)                         │
+│                                                             │
+│  1. METADATA         2. ARCHIVE JOB        3. DELETE JOB    │
+│  ┌──────────────┐   ┌─────────────────┐   ┌──────────────┐ │
+│  │ Archival      │   │ Schedulable     │   │ Schedulable  │ │
+│  │ Status field  │   │ + Batchable     │   │ + Batchable  │ │
+│  │ Archival      │──▶│                 │──▶│              │ │
+│  │ Trigger field │   │ Query eligible  │   │ Query where  │ │
+│  │ Archive_Run   │   │ Copy to Athena  │   │ Archive      │ │
+│  │ audit object  │   │ Verify write    │   │ Completed    │ │
+│  └──────────────┘   │ Update status   │   │ Hard delete  │ │
+│                      └─────────────────┘   └──────────────┘ │
+│                              │                     │        │
+│                              ▼                     ▼        │
+│                     ┌─────────────────┐   ┌──────────────┐  │
+│                     │ Archive_Run__c  │   │ Archive_Run  │  │
+│                     │ (audit log)     │   │ (audit log)  │  │
+│                     └─────────────────┘   └──────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                 ┌───────────────────────┐
+                 │   ATHENA (Cold Store) │
+                 │                       │
+                 │  Encounter            │
+                 │  Encounter Payor      │
+                 │  Financial Activity   │
+                 │  Encounter Code Chg   │
+                 │  Document Request     │
+                 │  Task                 │
+                 └───────────────────────┘</code></pre>
+<hr />
+<h2 id="3-component-1-salesforce-metadata">3. Component 1: Salesforce
+Metadata</h2>
+<h3 id="31-archival-status-picklist-case">3.1 Archival Status Picklist
+(Case)</h3>
+<p><strong>Field:</strong> <code>Archival_Status__c</code>
+<strong>Type:</strong> Picklist <strong>Object:</strong> Case
+<strong>Values:</strong></p>
+<ul>
+<li><code>Archiving In Progress</code> — Set when the batch job begins
+processing this record</li>
+<li><code>Archive Completed</code> — Set after successful write +
+verification to Athena</li>
+<li><code>Archive Failed</code> — Set if any step fails; record is
+re-eligible on next run <strong>Default:</strong> Blank (null)
+<strong>Notes:</strong> Must be visible on Encounter layouts and
+reportable. FLS should allow the batch job's running user to write this
+field.</li>
+</ul>
+<h3 id="32-archival-trigger-formula-case">3.2 Archival Trigger Formula
+(Case)</h3>
+<p><strong>Field:</strong> <code>Archival_Eligible__c</code>
+<strong>Type:</strong> Formula (Checkbox) <strong>Object:</strong>
+Case</p>
+<pre><code>AND(
+  NOT(ISBLANK(ClosedDate)),
+  ClosedDate &lt;= TODAY() - 730,
+  OR(
+    ISPICKVAL(Status_Code__c, &quot;Closed&quot;),
+    ISPICKVAL(Status_Code__c, &quot;Confirmed No Opportunity&quot;)
+  ),
+  ISBLANK(TEXT(Archival_Status__c))
+)</code></pre>
+<p><strong>Logic:</strong></p>
+<ul>
+<li>ClosedDate is populated AND older than 730 days (24 months)</li>
+<li>Status is in a closed state (belt-and-suspenders with the date
+check)</li>
+<li>Archival Status is blank (never attempted before, or was reset after
+failure)</li>
+</ul>
+<h3 id="33-archive-run-audit-object">3.3 Archive Run Audit Object</h3>
+<p><strong>Object:</strong> <code>Archive_Run__c</code>
+<strong>Purpose:</strong> Track each execution of the archive and delete
+batch jobs</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>API Name</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Run Type</td>
+<td>Run_Type__c</td>
+<td>Picklist</td>
+<td><code>Archive</code> or <code>Delete</code></td>
+</tr>
+<tr>
+<td>Run Start</td>
+<td>Run_Start__c</td>
+<td>DateTime</td>
+<td>Batch job start time</td>
+</tr>
+<tr>
+<td>Run End</td>
+<td>Run_End__c</td>
+<td>DateTime</td>
+<td>Batch job end time</td>
+</tr>
+<tr>
+<td>Records Attempted</td>
+<td>Records_Attempted__c</td>
+<td>Number</td>
+<td>Total encounters processed</td>
+</tr>
+<tr>
+<td>Records Succeeded</td>
+<td>Records_Succeeded__c</td>
+<td>Number</td>
+<td>Successfully archived/deleted</td>
+</tr>
+<tr>
+<td>Records Failed</td>
+<td>Records_Failed__c</td>
+<td>Number</td>
+<td>Failed records</td>
+</tr>
+<tr>
+<td>Run Status</td>
+<td>Run_Status__c</td>
+<td>Picklist</td>
+<td><code>Running</code>, <code>Completed</code>,
+<code>Completed with Errors</code>, <code>Failed</code></td>
+</tr>
+<tr>
+<td>Error Log</td>
+<td>Error_Log__c</td>
+<td>Long Text Area</td>
+<td>JSON or delimited error details per record</td>
+</tr>
+<tr>
+<td>Batch Job ID</td>
+<td>Batch_Job_Id__c</td>
+<td>Text</td>
+<td>AsyncApexJob ID for traceability</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-validation-rule-modification">3.4 Validation Rule
+Modification</h3>
+<p><strong>Issue:</strong> <code>Restrict_Modifying_Closed_Cases</code>
+(and equivalent rules on Encounter Payor, Document Request, Financial
+Activity) will block the batch job from updating
+<code>Archival_Status__c</code> on closed encounters.</p>
+<p><strong>Recommended Fix:</strong> Add an exclusion clause to the Case
+validation rule:</p>
+<pre><code>AND(
+  &lt;existing closed-case restriction logic&gt;,
+  NOT(ISCHANGED(Archival_Status__c))
+)</code></pre>
+<p>This allows <code>Archival_Status__c</code> to be updated on closed
+records while keeping all other fields protected. Apply the same pattern
+to child object VRs if the archival process needs to stamp child
+records.</p>
+<hr />
+<h2 id="4-component-2-archive-batch-job">4. Component 2: Archive Batch
+Job</h2>
+<h3 id="41-architecture">4.1 Architecture</h3>
+<ul>
+<li><strong>EncounterArchivalSchedulable</strong> —
+<code>Schedulable</code> class that launches the batch</li>
+<li><strong>EncounterArchivalBatch</strong> —
+<code>Database.Batchable&lt;SObject&gt;</code> that handles the archive
+pipeline</li>
+</ul>
+<h3 id="42-batch-start-query">4.2 Batch Start (Query)</h3>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">Id</span>, CaseNumber, Subject, ClosedDate,</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>       (<span class="kw">SELECT</span> <span class="kw">Id</span> <span class="kw">FROM</span> Encounter_Payors__r),</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>       (<span class="kw">SELECT</span> <span class="kw">Id</span> <span class="kw">FROM</span> Encounter_Code_Change__r),</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>       (<span class="kw">SELECT</span> <span class="kw">Id</span> <span class="kw">FROM</span> Document_Requests__r),</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>       (<span class="kw">SELECT</span> <span class="kw">Id</span> <span class="kw">FROM</span> Tasks <span class="kw">WHERE</span> WhatId <span class="op">=</span> <span class="ch">:encounterId</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="kw">FROM</span> <span class="cf">Case</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> Archival_Eligible__c <span class="op">=</span> <span class="kw">TRUE</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> Archival_Status__c <span class="op">=</span> <span class="kw">NULL</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> RecordType.DeveloperName <span class="kw">IN</span> (<span class="st">&#39;ARR&#39;</span>, <span class="st">&#39;ZB&#39;</span>)</span></code></pre></div>
+<p><strong>Batch size:</strong> 10 (conservative — each record triggers
+subqueries + callout to Athena)</p>
+<h3 id="43-batch-execute-per-scope">4.3 Batch Execute (per scope)</h3>
+<p>For each Encounter in the batch scope:</p>
+<p><strong>Step 1 — Mark In Progress</strong></p>
+<pre><code>encounter.Archival_Status__c = &#39;Archiving In Progress&#39;;
+UPDATE encounter;</code></pre>
+<p><strong>Step 2 — Collect All Related Records</strong></p>
+<p>Query the full field set for:</p>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Query Via</th>
+<th>Expected Volume</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Encounter (Case)</td>
+<td>Direct — the batch record</td>
+<td>1 per scope item</td>
+</tr>
+<tr>
+<td>Encounter Payor</td>
+<td><code>Related_Encounter__c = :encounterId</code></td>
+<td>Low (1-5 per encounter)</td>
+</tr>
+<tr>
+<td>Financial Activity</td>
+<td><code>Encounter_Payor__c IN :payorIds</code></td>
+<td>Medium (1-20 per payor)</td>
+</tr>
+<tr>
+<td>Encounter Code Change</td>
+<td><code>Related_Encounter__c = :encounterId</code></td>
+<td>Low (0-10)</td>
+</tr>
+<tr>
+<td>Document Request</td>
+<td><code>Related_Encounter__c = :encounterId</code></td>
+<td>Low (0-5)</td>
+</tr>
+<tr>
+<td>Task</td>
+<td><code>WhatId = :encounterId</code></td>
+<td>Medium (1-50)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>DECISION NEEDED:</strong> Whether to include Events,
+EmailMessages, FeedItem, Attachments/Files, Encounter Guidance,
+CaseComments. See Section 7.</p>
+</blockquote>
+<p><strong>Step 3 — Write to Athena</strong></p>
+<blockquote>
+<p><strong>BLOCKER: Athena integration spec needed from ENG.</strong>
+The write mechanism determines the batch architecture:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Implications</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>REST/SOAP callout</strong></td>
+<td>Batch must implement <code>Database.AllowsCallouts</code>. Max 100
+callouts per execute. May need to serialize the encounter + all children
+into a single payload.</td>
+</tr>
+<tr>
+<td><strong>Platform Event</strong></td>
+<td>Fire an event with the archive payload; ENG subscribes and writes to
+Athena. Decoupled but adds async complexity for verification.</td>
+</tr>
+<tr>
+<td><strong>Named Credential + middleware</strong></td>
+<td>API Gateway or integration layer handles the Athena write. Cleanest
+separation but adds infrastructure dependency.</td>
+</tr>
+<tr>
+<td><strong>Big Objects (SF-native)</strong></td>
+<td>No external dependency. Limited query capabilities but keeps data in
+Salesforce.</td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<p><strong>Step 4 — Verify Write</strong></p>
+<p>After the write, confirm:</p>
+<ul>
+<li>Athena returned a success response (or: query Athena to confirm
+record count)</li>
+<li>Record counts match: parent encounter + all child records sent =
+records confirmed in Athena</li>
+<li>Each cold storage child record has <code>OriginalEncounterId</code>
+populated</li>
+</ul>
+<p><strong>Step 5 — Update Status</strong></p>
+<pre><code>IF verification passed:
+    encounter.Archival_Status__c = &#39;Archive Completed&#39;;
+ELSE:
+    encounter.Archival_Status__c = &#39;Archive Failed&#39;;
+    log error to Archive_Run__c;</code></pre>
+<h3 id="44-batch-finish">4.4 Batch Finish</h3>
+<ul>
+<li>Create/update the <code>Archive_Run__c</code> record with final
+counts and status</li>
+<li>Optionally send a notification email or post to Chatter</li>
+</ul>
+<hr />
+<h2 id="5-component-3-delete-batch-job">5. Component 3: Delete Batch
+Job</h2>
+<h3 id="51-architecture">5.1 Architecture</h3>
+<ul>
+<li><strong>EncounterDeleteSchedulable</strong> —
+<code>Schedulable</code> class, runs on a separate schedule from the
+archive job</li>
+<li><strong>EncounterDeleteBatch</strong> —
+<code>Database.Batchable&lt;SObject&gt;</code></li>
+</ul>
+<h3 id="52-eligibility">5.2 Eligibility</h3>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="kw">Id</span> <span class="kw">FROM</span> <span class="cf">Case</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">WHERE</span> Archival_Status__c <span class="op">=</span> <span class="st">&#39;Archive Completed&#39;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">AND</span> ClosedDate <span class="op">&lt;=</span> TODAY() <span class="op">-</span> <span class="dv">730</span></span></code></pre></div>
+<blockquote>
+<p><strong>Recommendation:</strong> Add a 7-day buffer. Only delete
+records where <code>Archive Completed</code> was set more than 7 days
+ago. This gives ops time to spot-check before permanent deletion. This
+requires adding an <code>Archive_Completed_Date__c</code> field to Case,
+stamped when the status changes to Archive Completed.</p>
+</blockquote>
+<h3 id="53-deletion-order">5.3 Deletion Order</h3>
+<p>Master-Detail cascade means deleting the parent Case will
+automatically delete:</p>
+<ul>
+<li>Encounter Payors (which cascades to Financial Activities)</li>
+<li>Encounter Code Changes</li>
+<li>Document Requests</li>
+<li>Tasks, Events, EmailMessages, FeedItems, Attachments</li>
+</ul>
+<p>However, <strong>for auditability</strong>, the batch should:</p>
+<ol type="1">
+<li>Log the count of each child type before deletion</li>
+<li>Delete the parent Case using <code>Database.delete()</code> +
+<code>Database.emptyRecycleBin()</code></li>
+<li>Record the deletion in <code>Archive_Run__c</code></li>
+</ol>
+<h3 id="54-file-deletion-flow-coordination">5.4 File Deletion Flow
+Coordination</h3>
+<p><strong>Existing flow:</strong>
+<code>Case_Weekly_Schedule_Closed_Delete_Files</code> runs weekly and
+deletes files from closed encounters using
+<code>File_Deletion_Flag__c</code>.</p>
+<p><strong>Risk:</strong> If this flow runs on encounters that haven't
+been archived yet, the file attachments will be permanently lost — they
+won't exist when the archival process tries to capture them.</p>
+<p><strong>Recommended fix (choose one):</strong></p>
+<ul>
+<li><strong>Option A:</strong> Modify the file deletion flow to skip
+records where <code>Archival_Status__c</code> is blank (not yet
+archived). Files are only deleted after archival is complete.</li>
+<li><strong>Option B:</strong> Ensure the archive job captures files
+BEFORE the file deletion flow runs. Coordinate scheduling.</li>
+<li><strong>Option C:</strong> Include file archival as part of TH-345
+scope (archive files to Athena along with data).</li>
+</ul>
+<hr />
+<h2 id="6-data-mapping-salesforce--athena-cold-storage">6. Data Mapping:
+Salesforce → Athena Cold Storage</h2>
+<h3 id="61-encounter-case--112-custom-fields--key-standard-fields">6.1
+Encounter (Case) — 112 custom fields + key standard fields</h3>
+<p>All cold storage tables must include <code>OriginalEncounterId</code>
+(the Salesforce Case <code>Id</code>) as the primary key / foreign
+key.</p>
+<p><strong>Standard Fields to Archive:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Salesforce Field</th>
+<th>API Name</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case ID</td>
+<td>Id</td>
+<td>id</td>
+</tr>
+<tr>
+<td>Case Number (Titan ID)</td>
+<td>CaseNumber</td>
+<td>string</td>
+</tr>
+<tr>
+<td>Subject (Patient Acct #)</td>
+<td>Subject</td>
+<td>string</td>
+</tr>
+<tr>
+<td>Account (Entity)</td>
+<td>AccountId</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>Owner</td>
+<td>OwnerId</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Status</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>Description</td>
+<td>Description</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>Created Date</td>
+<td>CreatedDate</td>
+<td>datetime</td>
+</tr>
+<tr>
+<td>Created By</td>
+<td>CreatedById</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>Last Modified Date</td>
+<td>LastModifiedDate</td>
+<td>datetime</td>
+</tr>
+<tr>
+<td>Last Modified By</td>
+<td>LastModifiedById</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>Record Type</td>
+<td>RecordTypeId</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>Closed Date</td>
+<td>ClosedDate</td>
+<td>datetime</td>
+</tr>
+<tr>
+<td>Escalated</td>
+<td>IsEscalated</td>
+<td>boolean</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Custom Fields to Archive (112 fields — current as of
+2026-04-06 from <code>titan-prod</code>):</strong></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>API Name</th>
+<th>Label</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ANSCI_Codes__c</td>
+<td>ANSCI Code(s)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Adjustment_Codes__c</td>
+<td>Adjustment Codes</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Admit_DX__c</td>
+<td>Admit DX</td>
+<td>string</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Admit_Date_Time__c</td>
+<td>Admit Date/Time</td>
+<td>datetime</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Admit_Type__c</td>
+<td>Admit Type</td>
+<td>string</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Appeal_Level__c</td>
+<td>Appeal Level</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Appeal_Received_Date__c</td>
+<td>Appeal Received Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Appeal_Sent_Date__c</td>
+<td>Appeal Sent Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Assigned_ROs__c</td>
+<td>Assigned RO(s)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Auditor_Conclusion_Date__c</td>
+<td>Auditor Conclusion Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Auditor_Conclusion_Set_By__c</td>
+<td>Auditor Conclusion Set By</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Auditor_Conclusion_Set__c</td>
+<td>Auditor Conclusion Set?</td>
+<td>boolean</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Auditor_Conclusion__c</td>
+<td>Auditor Conclusion</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Auditor_Identified__c</td>
+<td>Auditor Identified</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Auditor_Who_Deemed_No_Opportunity__c</td>
+<td>Auditor Who Deemed No Opportunity</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Bill_Type__c</td>
+<td>Bill Type</td>
+<td>string</td>
+</tr>
+<tr>
+<td>17</td>
+<td>C1713_Units__c</td>
+<td>C1713 Units</td>
+<td>number</td>
+</tr>
+<tr>
+<td>18</td>
+<td>CPT_Codes__c</td>
+<td>CPT Code(s)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Claim_Billing_Internally__c</td>
+<td>Claim Billing Internally?</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>20</td>
+<td>Claim_In_Process_Date__c</td>
+<td>Claim In Process Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Claim_Received_Date__c</td>
+<td>Claim Received Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Claim_Sent_Date__c</td>
+<td>Claim Sent Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Client__c</td>
+<td>Client</td>
+<td>string</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Condition_Codes__c</td>
+<td>Condition Code(s)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Current_User_is_Escalation_Supervisor__c</td>
+<td>Current User is Escalation Supervisor</td>
+<td>boolean</td>
+</tr>
+<tr>
+<td>26</td>
+<td>DRG_Codes__c</td>
+<td>DRG Codes</td>
+<td>string</td>
+</tr>
+<tr>
+<td>27</td>
+<td>DX_Codes__c</td>
+<td>DX Code(s)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Date_Assigned__c</td>
+<td>Date Assigned</td>
+<td>date</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Date_Escalated__c</td>
+<td>Date Escalated</td>
+<td>date</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Days_to_Close__c</td>
+<td>Days to Close</td>
+<td>number</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Days_to_Follow_Up__c</td>
+<td>Days to Follow-Up</td>
+<td>number</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Discharge_Date_Time__c</td>
+<td>Discharge Date/Time</td>
+<td>datetime</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Discharge_Status__c</td>
+<td>Discharge Status</td>
+<td>string</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Encounter_Source__c</td>
+<td>Encounter Source</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Escalation_Supervisor__c</td>
+<td>Escalation Supervisor</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>36</td>
+<td>Expected_Payment_Date__c</td>
+<td>Expected Payment Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Facility_Prefix__c</td>
+<td>Facility Prefix</td>
+<td>string</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Facility__c</td>
+<td>Facility</td>
+<td>string</td>
+</tr>
+<tr>
+<td>39</td>
+<td>File_Deletion_Flag__c</td>
+<td>File Deletion Flag</td>
+<td>boolean</td>
+</tr>
+<tr>
+<td>40</td>
+<td>Financial_Class__c</td>
+<td>Financial Class (Imported)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>41</td>
+<td>First_Date_Entered_ZB_Awaiting_Re_Bill__c</td>
+<td>First Date Entered ZB-Awaiting Re-Bill</td>
+<td>date</td>
+</tr>
+<tr>
+<td>42</td>
+<td>First_Touch_Date__c</td>
+<td>First Touch Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>43</td>
+<td>Full_ANSCI_Codes__c</td>
+<td>Full - ANSCI Code(s)</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>44</td>
+<td>Full_CPT_Codes__c</td>
+<td>Full - CPT Code(s)</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>45</td>
+<td>Full_DX_Codes__c</td>
+<td>Full - DX Code(s)</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>46</td>
+<td>Full_ICD10_PCS__c</td>
+<td>Full - ICD10-PCS</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>47</td>
+<td>Full_Modifier_Codes__c</td>
+<td>Full - Modifier Code(s)</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>48</td>
+<td>Full_Rev_Codes__c</td>
+<td>Full - Rev Code(s)</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>49</td>
+<td>Full_Transaction_Code__c</td>
+<td>Full - Transaction Code</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>50</td>
+<td>ICD10_PCS__c</td>
+<td>ICD10-PCS</td>
+<td>string</td>
+</tr>
+<tr>
+<td>51</td>
+<td>Import_Age__c</td>
+<td>Import Age</td>
+<td>number</td>
+</tr>
+<tr>
+<td>52</td>
+<td>Import_Client__c</td>
+<td>Import Client</td>
+<td>string</td>
+</tr>
+<tr>
+<td>53</td>
+<td>Import_Date__c</td>
+<td>Import Date</td>
+<td>datetime</td>
+</tr>
+<tr>
+<td>54</td>
+<td>Import_File_Source__c</td>
+<td>Import File Source</td>
+<td>string</td>
+</tr>
+<tr>
+<td>55</td>
+<td>Imported_Patient_Account_Number__c</td>
+<td>Imported Patient Account Number</td>
+<td>string</td>
+</tr>
+<tr>
+<td>56</td>
+<td>Insurance_Group__c</td>
+<td>Insurance Group (Imported)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>57</td>
+<td>Is_this_a_pre_approved_charge__c</td>
+<td>Is this a pre-approved charge?</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>58</td>
+<td>Last_RO_Evaluation_Date__c</td>
+<td>Last RO Evaluation Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>59</td>
+<td>Last_Status_Code_Changed_By__c</td>
+<td>Last Status Code Changed By</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>60</td>
+<td>Last_Status_Code_Update_Age__c</td>
+<td>Last Status Code Update Age</td>
+<td>number</td>
+</tr>
+<tr>
+<td>61</td>
+<td>Last_Status_Code_Update_Date__c</td>
+<td>Last Status Code Update Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>62</td>
+<td>Last_Touch_Age__c</td>
+<td>Last Touch Age</td>
+<td>number</td>
+</tr>
+<tr>
+<td>63</td>
+<td>Last_Touch_Date__c</td>
+<td>Last Touch Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>64</td>
+<td>Length_of_Stay_Hours__c</td>
+<td>Length of Stay (Hours)</td>
+<td>number</td>
+</tr>
+<tr>
+<td>65</td>
+<td>Medical_Service__c</td>
+<td>Medical Service</td>
+<td>string</td>
+</tr>
+<tr>
+<td>66</td>
+<td>Modifier_Codes__c</td>
+<td>Modifier Code(s)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>67</td>
+<td>Next_Work_Date__c</td>
+<td>Next Work Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>68</td>
+<td>No_Opportunity_Review_Status__c</td>
+<td>No Opportunity Review Status</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>69</td>
+<td>Occurrence_Codes__c</td>
+<td>Occurrence Code(s)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>70</td>
+<td>Original_Expected_Reimbursement__c</td>
+<td>Client Expected Reimbursement (Imported)</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>71</td>
+<td>Original_Expected_vs_Paid__c</td>
+<td>Client Expected vs Paid (Imported)</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>72</td>
+<td>Original_Percent_Allowed__c</td>
+<td>Client Original Percent Allowed (Imp.)</td>
+<td>percent</td>
+</tr>
+<tr>
+<td>73</td>
+<td>Patient_Name__c</td>
+<td>Patient Name</td>
+<td>string</td>
+</tr>
+<tr>
+<td>74</td>
+<td>Patient_Responsibility__c</td>
+<td>Patient Responsibility</td>
+<td>string</td>
+</tr>
+<tr>
+<td>75</td>
+<td>Patient_Subscriber_ID__c</td>
+<td>Patient Subscriber ID (Imported)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>76</td>
+<td>Patient_Type__c</td>
+<td>Patient Type</td>
+<td>string</td>
+</tr>
+<tr>
+<td>77</td>
+<td>Phone_Number__c</td>
+<td>Phone Number</td>
+<td>phone</td>
+</tr>
+<tr>
+<td>78</td>
+<td>Primary_ICD10_Diagnosis_Code__c</td>
+<td>Primary ICD10 Diagnosis Code</td>
+<td>string</td>
+</tr>
+<tr>
+<td>79</td>
+<td>Primary_Payor_Code__c</td>
+<td>Primary Payor Code (Imported)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Primary_Payor_Name__c</td>
+<td>Primary Payor (Imported)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>81</td>
+<td>Primary_Root_Cause__c</td>
+<td>Primary Root Cause</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>82</td>
+<td>Primary_Sub_Root_Cause__c</td>
+<td>Primary Sub-Root Cause</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>83</td>
+<td>RO_Code_Worked__c</td>
+<td>RO Code Worked</td>
+<td>string</td>
+</tr>
+<tr>
+<td>84</td>
+<td>Re_Bill_Request_Decision_Date__c</td>
+<td>Re-Bill Request Decision Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>85</td>
+<td>Re_Bill_Request_Outcome_Reason__c</td>
+<td>Re-Bill Request Outcome Reason</td>
+<td>string</td>
+</tr>
+<tr>
+<td>86</td>
+<td>Re_Bill_Request_Outcome__c</td>
+<td>Re-Bill Request Outcome</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>87</td>
+<td>Reconsideration_Received_Date__c</td>
+<td>Reconsideration Received Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>88</td>
+<td>Reconsideration_Sent_Date__c</td>
+<td>Reconsideration Sent Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>89</td>
+<td>Record_Processing_Status__c</td>
+<td>Record Processing Status</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>90</td>
+<td>Record_Type_Developer_Name__c</td>
+<td>Record Type Developer Name</td>
+<td>string</td>
+</tr>
+<tr>
+<td>91</td>
+<td>Reimbursement_Warning_Fx__c</td>
+<td>Reimbursement Warning Fx</td>
+<td>boolean</td>
+</tr>
+<tr>
+<td>92</td>
+<td>Rep_Escalation_Notes__c</td>
+<td>Rep Escalation Notes</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>93</td>
+<td>Results_Code__c</td>
+<td>Results Code</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>94</td>
+<td>Rev_Codes__c</td>
+<td>Rev Code(s)</td>
+<td>string</td>
+</tr>
+<tr>
+<td>95</td>
+<td>Secondary_Root_Cause__c</td>
+<td>Secondary Root Cause</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>96</td>
+<td>Secondary_Sub_Root_Cause__c</td>
+<td>Secondary Sub-Root Cause</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>97</td>
+<td>Status_Code__c</td>
+<td>Status Code</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>98</td>
+<td>Supervisor_Escalation_Notes__c</td>
+<td>Supervisor Escalation Notes</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>99</td>
+<td>Titan_Net_Balance__c</td>
+<td>Titan Net Balance</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>100</td>
+<td>Titan_Ready_to_Work__c</td>
+<td>Titan Ready to Work</td>
+<td>boolean</td>
+</tr>
+<tr>
+<td>101</td>
+<td>Total_Adjustments__c</td>
+<td>Client Adjustments (Imported)</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>102</td>
+<td>Total_Age__c</td>
+<td>Total Age</td>
+<td>number</td>
+</tr>
+<tr>
+<td>103</td>
+<td>Total_Allowed__c</td>
+<td>Client Total Allowed (Imported)</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>104</td>
+<td>Total_Billed_Charges_Imported__c</td>
+<td>Client Billed Charges (Imported)</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>105</td>
+<td>Total_Payments_Imported__c</td>
+<td>Client Payments (Imported)</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>106</td>
+<td>Total_Payor_Adjustments__c</td>
+<td>Titan Total Adjustments</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>107</td>
+<td>Total_Payor_Payments__c</td>
+<td>Titan Total Payments</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>108</td>
+<td>Transaction_Code__c</td>
+<td>Transaction Code</td>
+<td>string</td>
+</tr>
+<tr>
+<td>109</td>
+<td>Value_Codes__c</td>
+<td>Value Codes</td>
+<td>string</td>
+</tr>
+<tr>
+<td>110</td>
+<td>Withdrawn_Notes__c</td>
+<td>Withdrawn Notes</td>
+<td>string</td>
+</tr>
+<tr>
+<td>111</td>
+<td>Withdrawn_Status__c</td>
+<td>Withdrawn Status</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>112</td>
+<td>ZB_Awaiting_Rebill_Age__c</td>
+<td>ZB Awaiting Rebill Age</td>
+<td>number</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> This replaces the March 13 field list from the
+original story. 21 fields were renamed/removed and 18 were added. See
+SA-REVIEW-TH-345.md for the full diff.</p>
+</blockquote>
+<h3 id="62-encounter-payor-encounter_payor__c--13-custom-fields">6.2
+Encounter Payor (<code>Encounter_Payor__c</code>) — 13 custom
+fields</h3>
+<p>Cold storage must include <code>OriginalEncounterId</code> (from
+<code>Related_Encounter__c</code>) +
+<code>OriginalEncounterPayorId</code> (the SF record Id).</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>API Name</th>
+<th>Label</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Name</td>
+<td>Encounter Payor ID</td>
+<td>auto number</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Related_Encounter__c</td>
+<td>Related Encounter</td>
+<td>reference (MD)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Payor__c</td>
+<td>Payor</td>
+<td>string (formula)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Payor_Name__c</td>
+<td>Payor Name</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Payor_Type__c</td>
+<td>Insurance Coverage Level</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Patient_Relationship__c</td>
+<td>Patient Relationship</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Status__c</td>
+<td>Status</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Subscriber_Group_Number__c</td>
+<td>Subscriber Group Number</td>
+<td>string</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Subscriber_Policy_Number__c</td>
+<td>Subscriber Policy Number</td>
+<td>string</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Reason_for_Change__c</td>
+<td>Reason for Change</td>
+<td>string</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Related_Encounter_Type__c</td>
+<td>Related Encounter Type</td>
+<td>string</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Total_Adjustments__c</td>
+<td>Total Adjustments</td>
+<td>currency (rollup)</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Total_Payments__c</td>
+<td>Total Payments</td>
+<td>currency (rollup)</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Total_Transfers__c</td>
+<td>Total Transfers</td>
+<td>currency (rollup)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Change from original doc:</strong> <code>Payor_Type__c</code>
+label changed from "Payor Type" to "Insurance Coverage Level".
+<code>Related_Encounter_Type__c</code> is new.
+<code>Expected_Payment_Date__c</code> and
+<code>Expected_Reimbursement_for_Payor__c</code> no longer exist on this
+object — verify if moved or removed.</p>
+</blockquote>
+<h3
+id="63-financial-activity-financial_activity__c--16-custom-fields">6.3
+Financial Activity (<code>Financial_Activity__c</code>) — 16 custom
+fields</h3>
+<p>Cold storage key: <code>OriginalEncounterPayorId</code> (from
+<code>Encounter_Payor__c</code>) +
+<code>OriginalFinancialActivityId</code>.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>API Name</th>
+<th>Label</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Name</td>
+<td>Financial Activity Number</td>
+<td>auto number</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Encounter_Payor__c</td>
+<td>Encounter Payor</td>
+<td>reference (MD)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Transaction_Type__c</td>
+<td>Transaction Type</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Transaction_Date__c</td>
+<td>Transaction Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Net_Amount__c</td>
+<td>Net Amount</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Qualified_Amount__c</td>
+<td>Qualified Amount</td>
+<td>currency</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Contingency_Rate__c</td>
+<td>Contingency Rate</td>
+<td>percent</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Invoice_Line_Item_Amount__c</td>
+<td>Invoice Line Item Amount</td>
+<td>currency (formula)</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Invoiced_Date__c</td>
+<td>Invoiced Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Adjustment_Codes__c</td>
+<td>Adjustment Codes</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Supervisor_Approved__c</td>
+<td>Supervisor Approved?</td>
+<td>boolean</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Financial_Activity_Note__c</td>
+<td>Financial Activity Note</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Client_Name__c</td>
+<td>Client Name</td>
+<td>string (formula)</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Facility_Name__c</td>
+<td>Facility Name</td>
+<td>string (formula)</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Patient_Account_Number__c</td>
+<td>Patient Account Number</td>
+<td>string (formula)</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Payor_Name__c</td>
+<td>Payor Name</td>
+<td>string (formula)</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Related_Encounter_Type__c</td>
+<td>Related Encounter Type</td>
+<td>string</td>
+</tr>
+</tbody>
+</table>
+<h3
+id="64-encounter-code-change-encounter_code_change__c--6-custom-fields">6.4
+Encounter Code Change (<code>Encounter_Code_Change__c</code>) — 6 custom
+fields</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>API Name</th>
+<th>Label</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Name</td>
+<td>Encounter Code Value</td>
+<td>string</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Related_Encounter__c</td>
+<td>Related Encounter</td>
+<td>reference (MD)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Change_Type__c</td>
+<td>Change Type</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Code_Type__c</td>
+<td>Code Type</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Code_Change_Comments__c</td>
+<td>Code Change Comments</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Previous_Units_Value__c</td>
+<td>Previous Units Value</td>
+<td>number</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Updated_Units_Value__c</td>
+<td>Updated Units Value</td>
+<td>number</td>
+</tr>
+</tbody>
+</table>
+<h3 id="65-document-request-document_request__c--7-custom-fields">6.5
+Document Request (<code>Document_Request__c</code>) — 7 custom
+fields</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>API Name</th>
+<th>Label</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Name</td>
+<td>Document Request Number</td>
+<td>auto number</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Related_Encounter__c</td>
+<td>Related Encounter</td>
+<td>reference (MD)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Requested_Documents__c</td>
+<td>Requested Documents</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Status__c</td>
+<td>Status</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Source__c</td>
+<td>Source</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Date_Requested__c</td>
+<td>Date Requested</td>
+<td>date</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Date_Received__c</td>
+<td>Date Received</td>
+<td>date</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Notes__c</td>
+<td>Notes</td>
+<td>textarea</td>
+</tr>
+</tbody>
+</table>
+<h3 id="66-task--standard-object">6.6 Task — Standard Object</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>API Name</th>
+<th>Label</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Id</td>
+<td>Task ID</td>
+<td>id</td>
+</tr>
+<tr>
+<td>2</td>
+<td>WhatId</td>
+<td>Related To (Encounter)</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>3</td>
+<td>OwnerId</td>
+<td>Assigned To</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Subject</td>
+<td>Subject</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Status</td>
+<td>Status</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Priority</td>
+<td>Priority</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Description</td>
+<td>Comments</td>
+<td>textarea</td>
+</tr>
+<tr>
+<td>8</td>
+<td>ActivityDate</td>
+<td>Due Date</td>
+<td>date</td>
+</tr>
+<tr>
+<td>9</td>
+<td>CompletedDateTime</td>
+<td>Completed Date/Time</td>
+<td>datetime</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Type</td>
+<td>Type</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>11</td>
+<td>TaskSubtype</td>
+<td>Task Subtype</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>12</td>
+<td>WhoId</td>
+<td>Name (Contact/Lead)</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>13</td>
+<td>CallType</td>
+<td>Call Type</td>
+<td>picklist</td>
+</tr>
+<tr>
+<td>14</td>
+<td>CallDisposition</td>
+<td>Call Result</td>
+<td>string</td>
+</tr>
+<tr>
+<td>15</td>
+<td>CallDurationInSeconds</td>
+<td>Call Duration</td>
+<td>number</td>
+</tr>
+<tr>
+<td>16</td>
+<td>CallObject</td>
+<td>Call Object Identifier</td>
+<td>string</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Email</td>
+<td>Email</td>
+<td>email</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Phone</td>
+<td>Phone</td>
+<td>phone</td>
+</tr>
+<tr>
+<td>19</td>
+<td>CreatedById</td>
+<td>Created By</td>
+<td>reference</td>
+</tr>
+<tr>
+<td>20</td>
+<td>CreatedDate</td>
+<td>Created Date</td>
+<td>datetime</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-open-decisions-required">7. Open Decisions Required</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Decision</th>
+<th>Options</th>
+<th>Recommendation</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>Athena integration mechanism</strong></td>
+<td>REST callout / Platform Event / Named Credential + middleware / Big
+Objects</td>
+<td>Depends on ENG architecture. Need spec before build.</td>
+<td>ENG</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Events in archival scope?</strong></td>
+<td>Include / Exclude</td>
+<td>Include — cascade-deleted with Case, data would be lost</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>EmailMessages in archival scope?</strong></td>
+<td>Include / Exclude</td>
+<td>Include — contains encounter communication history</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>FeedItem (Chatter) in archival scope?</strong></td>
+<td>Include / Exclude</td>
+<td>Exclude — low value, high volume</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Attachments / Files in archival scope?</strong></td>
+<td>Include / Exclude</td>
+<td>Include — files are being deleted weekly by existing flow</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Encounter Guidance in archival scope?</strong></td>
+<td>Include / Exclude</td>
+<td>Clarify — may be reference data, not encounter-specific</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Rebill Summary in archival scope?</strong></td>
+<td>Include / Exclude</td>
+<td>Clarify — Account-level object, may not be encounter-specific</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>8</td>
+<td><strong>CaseComments in archival scope?</strong></td>
+<td>Include / Exclude</td>
+<td>Include if used — cascade-deleted with Case</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>9</td>
+<td><strong>Delete buffer window</strong></td>
+<td>Immediate / 7-day / 30-day</td>
+<td>7-day buffer for spot-checking</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>10</td>
+<td><strong>Batch cadence</strong></td>
+<td>Daily / Weekly / Monthly</td>
+<td>Weekly (off-hours, weekend)</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Retrieval / search approach</strong></td>
+<td>Athena console / SF External Objects / API</td>
+<td>Depends on who needs access and why</td>
+<td>Andrea / Client</td>
+</tr>
+<tr>
+<td>12</td>
+<td><strong>File deletion flow coordination</strong></td>
+<td>Modify flow to check archival status / Schedule coordination /
+Include files in TH-345</td>
+<td>Option A (modify flow)</td>
+<td>SA (Bryant)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-technical-acceptance-criteria">8. Technical Acceptance
+Criteria</h2>
+<h3 id="metadata--configuration">Metadata &amp; Configuration</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" /><code>Archival_Status__c</code>
+picklist exists on Case with values: <code>Archiving In Progress</code>,
+<code>Archive Completed</code>, <code>Archive Failed</code>; default
+blank</label></li>
+<li><label><input type="checkbox" /><code>Archival_Eligible__c</code>
+formula checkbox exists on Case; returns TRUE when ClosedDate &gt; 730
+days and status is closed and Archival Status is blank</label></li>
+<li><label><input
+type="checkbox" /><code>Archive_Completed_Date__c</code> datetime field
+on Case; stamped when Archival Status set to Archive Completed (for
+delete buffer)</label></li>
+<li><label><input type="checkbox" /><code>Archive_Run__c</code> custom
+object exists with run tracking fields per Section 3.3</label></li>
+<li><label><input
+type="checkbox" /><code>Restrict_Modifying_Closed_Cases</code> VR
+updated to exclude <code>Archival_Status__c</code> changes</label></li>
+<li><label><input type="checkbox" />Fields and object are visible on
+appropriate layouts and reportable</label></li>
+</ul>
+<h3 id="archival-pipeline">Archival Pipeline</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Schedulable Apex class exists that
+can run on configurable cadence</label></li>
+<li><label><input type="checkbox" />Batch job queries Encounters where
+<code>Archival_Eligible__c = TRUE</code> and
+<code>Archival_Status__c = NULL</code></label></li>
+<li><label><input type="checkbox" />For each encounter, batch collects
+all child records per confirmed scope (Section 7)</label></li>
+<li><label><input type="checkbox" />Batch sets
+<code>Archival_Status__c = 'Archiving In Progress'</code> before cold
+storage write</label></li>
+<li><label><input type="checkbox" />Data written to Athena cold storage
+with field mappings per Section 6</label></li>
+<li><label><input type="checkbox" />Cold storage records include
+<code>OriginalEncounterId</code> and stable child
+identifiers</label></li>
+<li><label><input type="checkbox" />After successful write,
+<code>Archival_Status__c = 'Archive Completed'</code> and
+<code>Archive_Completed_Date__c</code> stamped</label></li>
+<li><label><input type="checkbox" />On failure,
+<code>Archival_Status__c = 'Archive Failed'</code> with error
+logged</label></li>
+<li><label><input type="checkbox" />Failed records are re-eligible on
+next run (Archival Status can be reset to blank)</label></li>
+</ul>
+<h3 id="verification--deletion">Verification &amp; Deletion</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Archive verification confirms
+successful DML and expected record counts (parent + all
+children)</label></li>
+<li><label><input type="checkbox" />Separate delete batch job runs on
+its own schedule</label></li>
+<li><label><input type="checkbox" />Delete job only processes
+<code>Archival_Status__c = 'Archive Completed'</code> AND
+<code>Archive_Completed_Date__c &lt;= TODAY() - 7</code></label></li>
+<li><label><input type="checkbox" />Deletion uses
+<code>Database.delete()</code> + <code>Database.emptyRecycleBin()</code>
+for permanent removal</label></li>
+<li><label><input type="checkbox" />Delete job creates
+<code>Archive_Run__c</code> record with deletion counts</label></li>
+</ul>
+<h3 id="audit--observability">Audit &amp; Observability</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Each archive and delete run creates
+an <code>Archive_Run__c</code> record</label></li>
+<li><label><input type="checkbox" />Failed records are individually
+logged with error reason</label></li>
+<li><label><input type="checkbox" /><code>Archival_Status__c</code> is
+reportable for ops monitoring</label></li>
+</ul>
+<h3 id="closeddate-reset">ClosedDate Reset</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />If a closed Encounter is reopened
+(status changed from Closed/Confirmed No Opportunity), ClosedDate is
+cleared</label></li>
+<li><label><input type="checkbox" />This reset mechanism exists
+(flow/trigger) OR is documented as a new requirement for this
+story</label></li>
+</ul>
+<h3 id="governor-limit-compliance">Governor Limit Compliance</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Batch size accounts for subqueries +
+callouts per scope</label></li>
+<li><label><input type="checkbox" />Partial failures are handled per
+record (one failure doesn't roll back the batch scope)</label></li>
+<li><label><input type="checkbox" />All DML and callout limits are
+respected</label></li>
+</ul>
+<h3 id="file-deletion-coordination">File Deletion Coordination</h3>
+<ul class="task-list">
+<li><label><input
+type="checkbox" /><code>Case_Weekly_Schedule_Closed_Delete_Files</code>
+flow is updated to skip encounters where <code>Archival_Status__c</code>
+is blank (not yet archived)</label></li>
+</ul>
+<hr />
+<h2 id="9-deployment-components">9. Deployment Components</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Type</th>
+<th>Object</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Archival_Status__c</td>
+<td>Custom Field</td>
+<td>Case</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>Archival_Eligible__c</td>
+<td>Formula Field</td>
+<td>Case</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>Archive_Completed_Date__c</td>
+<td>DateTime Field</td>
+<td>Case</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>Archive_Run__c</td>
+<td>Custom Object</td>
+<td>—</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>Archive_Run__c fields (8)</td>
+<td>Custom Fields</td>
+<td>Archive_Run__c</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>Restrict_Modifying_Closed_Cases</td>
+<td>Validation Rule</td>
+<td>Case</td>
+<td>Modify</td>
+</tr>
+<tr>
+<td>EncounterArchivalSchedulable</td>
+<td>Apex Class</td>
+<td>—</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>EncounterArchivalBatch</td>
+<td>Apex Class</td>
+<td>—</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>EncounterDeleteSchedulable</td>
+<td>Apex Class</td>
+<td>—</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>EncounterDeleteBatch</td>
+<td>Apex Class</td>
+<td>—</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>EncounterArchivalBatchTest</td>
+<td>Apex Test</td>
+<td>—</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>EncounterDeleteBatchTest</td>
+<td>Apex Test</td>
+<td>—</td>
+<td>Create</td>
+</tr>
+<tr>
+<td>Case_Weekly_Schedule_Closed_Delete_Files</td>
+<td>Flow</td>
+<td>Case</td>
+<td>Modify</td>
+</tr>
+<tr>
+<td>Encounter Layout(s)</td>
+<td>Page Layout</td>
+<td>Case</td>
+<td>Modify</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-deployment-package-added-2026-04-16">9. Deployment Package
+(added 2026-04-16)</h2>
+<p>After SA-review and the integration pivot (Tim's integration pulls
+via REST instead of Apex writing directly to Athena), the pipeline was
+packaged for UAT with the following artifacts:</p>
+<ul>
+<li><strong>Manifest:</strong> <a
+href="../../metadata/package-th345/package.xml"><code>metadata/package-th345/package.xml</code></a>
+— 31 components, API v60.0, deploy against
+<code>metadata/force-app/main/default/</code>.</li>
+<li><strong>Component matrix:</strong> <a
+href="TH-345-DEPLOYMENT-COMPONENT-MATRIX.md"><code>TH-345-DEPLOYMENT-COMPONENT-MATRIX.md</code></a>
+— verified net-new vs. modified components against
+<code>titan-prod</code> on 2026-04-16.</li>
+<li><strong>UAT runbook:</strong> <a
+href="../TH-345-FULL-COPY-RUNBOOK.html"><code>TH-345-FULL-COPY-RUNBOOK.html</code></a>
+— 8-step interactive validation runbook.</li>
+</ul>
+<h3 id="pivot-notes-vs-original-design">Pivot notes vs. original
+design</h3>
+<ul>
+<li><code>ArchivalDataService</code> (REST) and
+<code>Archival_Config__mdt</code> with two CMDT records were added so
+Tim's external integration can pull all archival data and adjust SOQL
+without code changes.</li>
+<li>The original "EncounterArchivalBatch writes to Athena then stamps
+Archive Completed" flow was split: the batch now only flips status to
+<code>Archiving In Progress</code>; Tim's integration stamps
+<code>Archive Completed</code> +
+<code>Archive_Completed_Date__c</code>.</li>
+<li><code>EncounterDeleteBatch</code> still enforces the 7-day buffer
+before hard-delete.</li>
+<li>Page layout and Flow modifications from the original component list
+are <strong>not</strong> included in this package — to be handled
+separately if/when required.</li>
+</ul>
+<h3 id="deployment-commands">Deployment commands</h3>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Dry-run</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="at">--manifest</span> metadata/package-th345/package.xml <span class="at">--dry-run</span> <span class="at">--target-org</span> <span class="op">&lt;</span>alias<span class="op">&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Deploy + targeted tests</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="at">--manifest</span> metadata/package-th345/package.xml <span class="dt">\</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">--target-org</span> <span class="op">&lt;</span>alias<span class="op">&gt;</span> --test-level RunSpecifiedTests <span class="dt">\</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">--tests</span> EncounterArchivalBatchTest <span class="at">--tests</span> EncounterDeleteBatchTest <span class="dt">\</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">--ignore-conflicts</span> <span class="at">--wait</span> 30</span></code></pre></div>
+<p>Schedulables are deployed but NOT activated in any sandbox. Prod
+activation is a separate cutover step (see runbook Step 8).</p>
+<hr />
+<p><em>This solution design consolidates and replaces the original
+TH-345 story notes. Field mappings are current as of 2026-04-06 from
+<code>titan-prod</code>. All open decisions in Section 7 must be
+resolved before ENG begins the cold storage build.</em></p>
+  </article>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Complete Project Handoff — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+  .toc-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 18px 0 28px;
+    font-size: 14px;
+  }
+  .toc-box strong { color: var(--accent-bright); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <a href="./">Titan Health</a>
+    <span class="nav-sep">›</span>
+    <span>Complete Project Handoff</span>
+  </nav>
+
+  <article class="doc-body">
+<h1 id="titan-health--complete-project-handoff">Titan Health — Complete
+Project Handoff</h1>
+<p><strong>Last updated:</strong> 2026-05-01 <strong>Prepared
+by:</strong> Bryant Daniels, Relkor Cloud Solutions LLC
+<strong>For:</strong> Titan Health Business Unit &amp; Salesforce Admin
+Team <strong>Supersedes:</strong> <a
+href="Titan-Health-R3-Handoff.md">Titan-Health-R3-Handoff.md</a> (R3
+baseline only)</p>
+<hr />
+<h2 id="1-executive-summary">1. Executive Summary</h2>
+<p>Titan Health's Salesforce org operates across <strong>two lines of
+business</strong> (Zero Balance / "ZB" and Accounts Receivable
+Resolution / "ARR") in a <strong>single org with three
+sandboxes</strong>. Release 3 introduced ARR as a fully isolated
+client-aware LOB, plus several adjacent features. The work has been
+delivered across two waves:</p>
+<table>
+<thead>
+<tr>
+<th>Wave</th>
+<th>Stories</th>
+<th>UAT status</th>
+<th>Prod status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R3 baseline</strong> (Apr 2026)</td>
+<td>TH-486 / TH-489 sharing model, TH-521 Payor lookups, TH-345 archival
+pipeline</td>
+<td>✅ Deployed</td>
+<td>⏳ Awaiting cutover</td>
+</tr>
+<tr>
+<td><strong>Sprint 2 — Post stories</strong> (May 2026)</td>
+<td>TH-477, TH-577, TH-581, TH-583, TH-584, TH-585, TH-586</td>
+<td>✅ Deployed</td>
+<td>⏳ Awaiting cutover</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Both waves are deployed to UAT (<code>titan-full</code>) and
+ready for production cutover</strong> as a single coordinated release.
+None of this is in production yet.</p>
+<p>The org today: 2 Lines of Business, 15 Roles, 27 Public Groups,
+~13–15 Queues, ~92 Permission Sets, ~22 Permission Set Groups, ~4.2–4.3M
+Case records.</p>
+<hr />
+<h2 id="2-project-context">2. Project Context</h2>
+<h3 id="organization">Organization</h3>
+<p><strong>Titan Health</strong> processes patient encounters for
+hospital clients. Each encounter is a Salesforce <strong>Case</strong>
+record. The two LOBs:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Zero Balance (ZB)</strong></th>
+<th><strong>Accounts Receivable Resolution (ARR)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Status</td>
+<td>Live in production</td>
+<td>New in R3</td>
+</tr>
+<tr>
+<td>Client model</td>
+<td>Single shared pool</td>
+<td><strong>Per-client isolation</strong> (Christus, NWM today)</td>
+</tr>
+<tr>
+<td>Owner-side roles</td>
+<td><code>Reimbursement_Auditor_I-IV</code></td>
+<td><code>Payor_Collections_Specialist_I-IV</code></td>
+</tr>
+<tr>
+<td>Supervisor role</td>
+<td><code>ZB_Supervisor</code></td>
+<td><code>ARR_Supervisor</code></td>
+</tr>
+<tr>
+<td>Triage flow</td>
+<td>Unassigned → Supervisor → Team</td>
+<td>Newly Unassigned → Supervisor → Client team</td>
+</tr>
+</tbody>
+</table>
+<h3 id="history--contributors">History &amp; contributors</h3>
+<ul>
+<li><strong>Pre-R3:</strong> Mitch (prior architect) built the original
+ZB sharing model and core data flows. See
+<code>docs/Reference Material from Mitch/Parting Notes</code> and the
+NotebookLM notebook "Titan Health — Mitch Knowledge Transfer" for the
+corpus he handed off.</li>
+<li><strong>R3 baseline (Apr 2026):</strong> Bryant Daniels (Relkor) —
+sharing-model rebuild for ARR, Payor lookup hardening, archival
+pipeline.</li>
+<li><strong>R3 Sprint 2 (May 2026):</strong> Bryant Daniels — 7 Post
+stories below.</li>
+<li><strong>Integration partner:</strong> Tim's team owns the Athena
+pipeline that consumes archival REST output (TH-345).</li>
+<li><strong>Admin:</strong> Al Reveles maintains config in
+production.</li>
+</ul>
+<hr />
+<h2 id="3-architecture--conventions">3. Architecture &amp;
+Conventions</h2>
+<h3 id="31-two-lobs-in-one-org">3.1 Two LOBs in one org</h3>
+<p>Both LOBs use the same Case object. They're separated by
+<strong>Record Type</strong>
+(<code>Accounts_Receivable_Recovery_ARR</code> vs
+<code>Zero_Balance_ZB</code>) and routed through different queues,
+groups, permissions, <strong>and Lightning pages</strong>:</p>
+<ul>
+<li><code>Titan_Health_Case_Record_Page</code> — generic</li>
+<li><code>Titan_Health_ARR_Encounter_Record_Page</code> — ARR-specific
+(used in UAT/Prod; Dev uses generic)</li>
+<li><code>Titan_Health_Encounter_Payor_Record_Page</code> — for the EP
+child object</li>
+</ul>
+<p>The two LOBs <strong>never share data through sharing-rule
+layer</strong>. A user only sees ARR data if they're in an ARR group;
+only sees ZB data if they're in a ZB group. Hybrid users belong to
+both.</p>
+<h3 id="32-sharing-model--case-is-private-owd">3.2 Sharing model — Case
+is <code>Private</code> OWD</h3>
+<p>Case OWD = <strong>Private</strong>. Access comes only from: (a)
+record ownership, (b) Case Team membership, (c) one of the <strong>7
+criteria-based sharing rules</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Who</th>
+<th>When</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ARR_Client_Christus_Access</code></td>
+<td>ARR Christus team</td>
+<td>Christus ARR encounter past Newly Unassigned</td>
+<td>Edit</td>
+</tr>
+<tr>
+<td><code>ARR_Client_NWM_Access</code></td>
+<td>ARR NWM team</td>
+<td>NWM ARR encounter past Newly Unassigned</td>
+<td>Edit</td>
+</tr>
+<tr>
+<td><code>ARR_Supervisor_CHS_Newly_Unassigned_Access</code></td>
+<td>ARR Christus supervisors</td>
+<td>Christus ARR encounter is Newly Unassigned</td>
+<td>Edit</td>
+</tr>
+<tr>
+<td><code>ARR_Supervisor_NWM_Newly_Unassigned_Access</code></td>
+<td>ARR NWM supervisors</td>
+<td>NWM ARR encounter is Newly Unassigned</td>
+<td>Edit</td>
+</tr>
+<tr>
+<td><code>ZB_Encounters_Read_Edit_Access</code></td>
+<td>ZB Edit team</td>
+<td>ZB encounter past Unassigned</td>
+<td>Edit</td>
+</tr>
+<tr>
+<td><code>ZB_Encounters_Read_Only_Access</code></td>
+<td>ZB Read-Only team</td>
+<td>ZB encounter past Unassigned</td>
+<td>Read</td>
+</tr>
+<tr>
+<td><code>ZB_Supervisor_Unassigned_Access</code></td>
+<td>ZB supervisors</td>
+<td>ZB encounter is Unassigned</td>
+<td>Edit</td>
+</tr>
+</tbody>
+</table>
+<p>Detail objects (<code>Encounter_Payor__c</code>,
+<code>Encounter_Code_Change__c</code>, <code>Document_Request__c</code>,
+<code>Financial_Activity__c</code>) use <strong>Controlled By
+Parent</strong> sharing — they automatically inherit Case's access.
+Never set up sharing on these directly.</p>
+<h3 id="33-permission-architecture-layered">3.3 Permission architecture
+(layered)</h3>
+<ol type="1">
+<li><strong>Object × Persona perm sets</strong> (~54):
+<code>Titan_Health_&lt;Object&gt;_&lt;Persona&gt;</code> — generic
+across BUs.</li>
+<li><strong><code>Titan_Health_SPECIAL_*</code> perm sets</strong>
+(~14): elevated permissions assigned only when needed.</li>
+<li><strong>BU-specific perm sets</strong> (4): <code>ARR_Admin</code>,
+<code>ARR_Collector_Base</code>, <code>ARR_Supervisor_Elevated</code>,
+<code>ZB_Collector_Base</code>.</li>
+<li><strong>Permission Set Groups</strong> (22): admin assigns one PSG
+per user role.</li>
+</ol>
+<h3 id="34-picklist-conventions">3.4 Picklist conventions</h3>
+<ul>
+<li><strong>GVS-backed (restricted) picklists:</strong>
+<code>Status_Code__c</code>, <code>Adjustment_Codes__c</code> use
+<code>Status_Code_GVS</code> and <code>Adjustment_Codes_GVS</code>
+GlobalValueSets. Adding values is a 2-step deploy — add to the GVS,
+<strong>and</strong> add to the consuming Record Type's
+<code>&lt;picklistValues&gt;</code> block (UAT's record types have
+explicit picklistValues blocks; new GVS values are NOT
+auto-allowed).</li>
+<li><strong>ARR-prefix convention:</strong> values intended for ARR
+records are prefixed <code>ARR -</code>. There's currently no
+Record-Type filter actually enforcing this — the prefix is the
+convention. (If strict enforcement is needed later, that's a separate
+change.)</li>
+</ul>
+<h3 id="35-encounter-guidance">3.5 Encounter Guidance</h3>
+<p><code>Encounter_Guidance__c</code> records drive automated routing on
+Status Code change. Each record is keyed on Status Code + Record Type
+and specifies:</p>
+<ul>
+<li><code>Case_Status_Category__c</code> (inline picklist — different
+from Case's own Status Code Category!)</li>
+<li><code>Days_to_Follow_Up__c</code></li>
+<li><code>Expected_Record_Owner__c</code> — picklist of owner names that
+downstream automation maps to actual queues (e.g., "Collections" →
+<code>ARR_Collections</code> queue)</li>
+<li><code>Guidance_Details__c</code> (required)</li>
+<li><code>Guidance_Field_Type__c</code> (required)</li>
+</ul>
+<p>UAT has <strong>23 ARR Encounter Guidance records</strong> today
+(driven mostly by R3 Sprint 2's TH-584 work).</p>
+<hr />
+<h2 id="4-what-shipped">4. What Shipped</h2>
+<h3 id="41-release-3-baseline-apr-2026">4.1 Release 3 baseline (Apr
+2026)</h3>
+<h4 id="th-486--th-489--arr-sharing-model">TH-486 / TH-489 — ARR Sharing
+Model</h4>
+<ul>
+<li>4 new Public Groups (<code>ARR_Client_Christus</code>,
+<code>ARR_Client_NWM</code>, <code>ARR_Supervisors_CHS</code>,
+<code>ARR_Supervisors_NWM</code>)</li>
+<li>2 new Sharing Rules on Case (plus the 2 ZB rules already in
+place)</li>
+<li>4 new Permission Sets, 3 new Permission Set Groups</li>
+<li>2 new Queues (<code>ARR_Newly_Unassigned_Queue</code>,
+<code>ARR_Collections</code>)</li>
+<li>3 new List Views scoped to ARR</li>
+<li>6 Apex classes + 1 trigger automating Case Team membership on ARR
+encounter creation</li>
+<li>2 modified Page Layouts</li>
+</ul>
+<p>Deep dive: <a
+href="../SA-SOLUTION-SHARING-MODEL.md">docs/SA-SOLUTION-SHARING-MODEL.md</a>,
+<a
+href="../TH-486-LOB-Access-Configuration.md">docs/TH-486-LOB-Access-Configuration.md</a>,
+<a
+href="../TH-489-Unassigned-Encounter-Restriction.md">docs/TH-489-Unassigned-Encounter-Restriction.md</a>.</p>
+<h4 id="th-521--smarter-payor-lookups">TH-521 — Smarter Payor
+Lookups</h4>
+<ul>
+<li>Payor lookup on <code>Encounter_Payor__c</code> now filters by
+RecordType = "Payor"</li>
+<li>2 new Validation Rules enforcing Payor's Client = Encounter's
+LOB</li>
+</ul>
+<h4 id="th-345--historic-encounter-archival-pipeline">TH-345 — Historic
+Encounter Archival Pipeline</h4>
+<p>7 Apex classes + <code>Archive_Run__c</code> audit object +
+<code>Archival_Config__mdt</code> (CMDT-driven SOQL queries) + 3 new
+Case fields + REST integration to Athena. <strong>Schedulables are
+deployed but inactive</strong> — production activation is an explicit
+cutover step.</p>
+<p>Deep dive: <a href="../TH-345/">docs/TH-345/</a> (solution design,
+deployment matrix, integration handoff, SA review). Interactive UAT
+runbook: <a
+href="../TH-345-FULL-COPY-RUNBOOK.html">docs/TH-345-FULL-COPY-RUNBOOK.html</a>.</p>
+<h3 id="42-sprint-2--post-stories-may-2026">4.2 Sprint 2 — Post stories
+(May 2026)</h3>
+<p>Seven stories delivered together. Source manifest: <a
+href="../../build/">build/</a> (Dev) and <a
+href="../../uat-build/">uat-build/</a> (UAT-aware merge).</p>
+<h4
+id="th-477--arr-specific-fields-on-encounter--encounter-payor-foundation">TH-477
+— ARR-specific fields on Encounter / Encounter Payor (foundation)</h4>
+<p><strong>New fields on Case (Encounter):</strong></p>
+<ul>
+<li><code>Placement_Date__c</code> (DateTime)</li>
+<li><code>Secondary_Payor_Imported__c</code>,
+<code>Tertiary_Payor_Imported__c</code> (Text 255)</li>
+<li><code>Primary_Payor_Balance_Imported__c</code>,
+<code>Secondary_Payor_Balance_Imported__c</code>,
+<code>Tertiary_Payor_Balance_Imported__c</code> (Currency 16,2)</li>
+<li><code>Client_Epic_Work_Queue__c</code> (Text 80)</li>
+<li><code>Has_Encounter_Payors__c</code> (formula, boolean — used by
+TH-583 button visibility)</li>
+</ul>
+<p><strong>New fields on Encounter_Payor__c:</strong></p>
+<ul>
+<li><code>Encounter_Payor_Imp_Balance__c</code> — formula, switches off
+<code>Payor_Type__c</code> to pull the right Imported balance from the
+Case</li>
+<li><code>Encounter_Payor_Net_Balance__c</code> — formula:
+<code>Imp_Balance − Total_Payments − Total_Adjustments + Total_Transfers</code></li>
+</ul>
+<p><strong>Spec correction made:</strong> the original spec showed the
+Imp_Balance formula referencing the soon-to-be-deleted <code>xD_*</code>
+fields. Final formula uses the new
+<code>Primary/Secondary/Tertiary_Payor_Balance_Imported__c</code> fields
+instead.</p>
+<p><strong>ARR Lightning page placement (per AC):</strong>
+<code>Placement_Date__c</code> and
+<code>Client_Epic_Work_Queue__c</code> → Encounter Overview section; the
+5 Imported Payor fields → Imported Payor Details section; EP formulas →
+Encounter Payor Details section + EP Related List on the ARR page.</p>
+<h4 id="th-577--xd-field-cleanup">TH-577 — xD field cleanup</h4>
+<p>Deleted 6 fields used during proof-of-concept:
+<code>Case.xD__c</code>,
+<code>Case.xD_Secondary_Payor_Imported__c</code>,
+<code>Case.xD_Tertiary_Payor_Imported__c</code>,
+<code>Case.xD_Secondary_Payor_Balance_Imported__c</code>,
+<code>Case.xD_Tertiary_Payor_Balance_Imported__c</code>,
+<code>Encounter_Payor__c.xD_Payor_Balance__c</code>. Removed
+corresponding references from
+<code>Titan_Health_ARR_Encounter_Record_Page</code> and
+<code>Titan_Health_Encounter_Payor_Record_Page</code> in the same
+deploy.</p>
+<p><strong>Data note:</strong> <code>xD_Payor_Balance__c</code> had data
+on <strong>14,258 EP records</strong> in UAT at delete time. Data sits
+in the recycle bin for 15 days, then is permanently gone. Going forward,
+the <code>Encounter_Payor_Imp_Balance__c</code> formula sources from the
+Case-level Imported fields.</p>
+<h4 id="th-581--discharge-age-formula-update">TH-581 — Discharge Age
+formula update</h4>
+<p><code>Case.Assigned_Discharge_Age__c</code> formula updated from:</p>
+<pre><code>Date_Assigned__c - DATEVALUE(Discharge_Date_Time__c)</code></pre>
+<p>to:</p>
+<pre><code>IF(ISBLANK(Placement_Date__c), 0, DATEVALUE(Placement_Date__c) - DATEVALUE(Discharge_Date_Time__c))</code></pre>
+<p>(Spec called for <code>Placement_Date__c - DATEVALUE(...)</code>, but
+<code>Placement_Date__c</code> is DateTime — the wrapper is
+required.)</p>
+<h4 id="th-583--encounter-lightning-page-polish">TH-583 — Encounter
+Lightning page polish</h4>
+<ul>
+<li>Added <code>Titan_Net_Balance__c</code> to
+<code>Case.ZB_Case_Compact_Layout</code></li>
+<li>"Log Follow Up Note" Quick Action visibility rule changed from
+<code>Auditor_Conclusion_Set__c = true</code> →
+<code>Has_Encounter_Payors__c = true</code>. (FlexiPage visibility rules
+only support <code>EQUAL</code> operator, hence the boolean helper
+field.)</li>
+<li>New <code>Encounter_Payor_Financial_Class__c</code> formula on EP:
+<code>TEXT(Payor_Name__r.Financial_Class__c)</code> — added to the
+Encounter Payor Details section on the EP record page.</li>
+</ul>
+<h4 id="th-584--status-codes--encounter-guidance">TH-584 — Status Codes
++ Encounter Guidance</h4>
+<ul>
+<li>Added 2 Status Code values to <code>Status_Code_GVS</code>:
+<code>ARR - Offshore Adjustment Review</code>,
+<code>ARR - Sent to Coding</code></li>
+<li>Added "Follow Up" to
+<code>Encounter_Guidance__c.Case_Status_Category__c</code> (Dev only —
+UAT already had it)</li>
+<li>Added <code>ARR_Offshore_Adjustment_Review</code> to
+<code>Encounter_Guidance__c.Expected_Record_Owner__c</code></li>
+<li>Added all of the above to the <code>ARR_Encounter_Guidance</code>
+Record Type's <code>picklistValues</code> blocks (required for record
+creation)</li>
+<li>Inserted 2 new Encounter_Guidance records:
+<ul>
+<li><code>ARR - Offshore Adjustment Review</code> → category Follow Up,
+5 days, owner <code>ARR_Offshore_Adjustment_Review</code></li>
+<li><code>ARR - Sent to Coding</code> → category Follow Up, 7 days,
+owner <code>Collections</code> (routes to <code>ARR_Collections</code>
+queue)</li>
+</ul></li>
+</ul>
+<h4 id="th-585--adjustment-reasons-arr-only-by-convention">TH-585 —
+Adjustment Reasons (ARR-only by convention)</h4>
+<p>Added 3 values to <code>Adjustment_Codes_GVS</code>:
+<code>Denial - Max Units Exceeded (MUE)</code>,
+<code>Denial - Bundling</code>,
+<code>Contractual Adjustment - Contractual Variance</code>.</p>
+<h4 id="th-586--queue--list-view">TH-586 — Queue + List View</h4>
+<ul>
+<li>New Queue <code>ARR_Offshore_Adjustment_Review</code> (label "ARR -
+Offshore Adjustment Review"), members = <code>ARR_Supervisors_NWM</code>
+public group, supports Case</li>
+<li>New List View <code>ARR_Offshore_Adjustment_Review</code> on Case:
+filter scope = Queue, filters on RecordType = ARR +
+<code>Titan_Ready_to_Work__c = 1</code> +
+<code>Status_Code__c = ARR - Offshore Adjustment Review</code>, shared
+with <code>ARR_Supervisors_NWM</code></li>
+</ul>
+<hr />
+<h2 id="5-org-state-current">5. Org State (current)</h2>
+<h3 id="connected-orgs-per-configorg-configmd">Connected orgs (per
+<code>config/org-config.md</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Alias</th>
+<th>Type</th>
+<th>Username</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>titan-prod</code></td>
+<td>Production</td>
+<td><code>bryant.daniels+titanhealth@kicksaw.com</code></td>
+<td>None of the R3 work is in prod yet</td>
+</tr>
+<tr>
+<td><code>titan-full</code></td>
+<td>Full Copy Sandbox (UAT)</td>
+<td><code>bryant.daniels+titanhealth@kicksaw.com.full</code></td>
+<td>All R3 + Sprint 2 deployed; <strong>source of truth for
+UAT</strong></td>
+</tr>
+<tr>
+<td><code>titan-dev</code></td>
+<td>Dev Sandbox</td>
+<td><code>bryant.daniels+titanhealth@kicksaw.com.dev</code></td>
+<td>Used to validate Sprint 2 before promoting to UAT</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Project rule</strong> (per <code>Relkor/CLAUDE.md</code>
+memory): never set the target-org globally; always pass
+<code>--target-org titan-full</code> or
+<code>--target-org titan-dev</code> explicitly.</p>
+<h3 id="source-of-truth--divergence">Source-of-truth / divergence</h3>
+<p>UAT is the source of truth. Dev was used as a staging environment for
+Sprint 2 — but Dev's Lightning page structure differs from UAT (Dev has
+only <code>Titan_Health_Case_Record_Page</code>; UAT has separate
+ARR-specific and EP-specific pages). The Sprint 2 page-layout changes
+were applied to UAT only, since the AC explicitly scopes them to "ARR
+Lightning Record Page only" — which exists only in UAT.</p>
+<p>A previous diff comparison (May 1) is preserved at:</p>
+<ul>
+<li><a
+href="../../metadata/snapshots/UAT-vs-DEV-diff.md">metadata/snapshots/UAT-vs-DEV-diff.md</a>
+— full diff</li>
+<li><a
+href="../../metadata/snapshots/UAT-vs-DEV-actionable.md">metadata/snapshots/UAT-vs-DEV-actionable.md</a>
+— themed interpretation (CDP DLO noise filtered)</li>
+</ul>
+<hr />
+<h2 id="6-operational-runbook">6. Operational Runbook</h2>
+<h3 id="61-sf-cli-essentials">6.1 SF CLI essentials</h3>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Always update first</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> update</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># List orgs &amp; confirm aliases</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> org list</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Open an org</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> org open <span class="at">--target-org</span> titan-full</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Pull metadata inventory of one type</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> org list metadata <span class="at">--metadata-type</span> CustomField <span class="at">--target-org</span> titan-full <span class="at">--json</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Describe an object</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> sobject describe <span class="at">--sobject</span> Case <span class="at">--target-org</span> titan-full <span class="at">--json</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Retrieve via manifest</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project retrieve start <span class="at">--manifest</span> path/to/package.xml <span class="at">--target-org</span> titan-full</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Deploy a directory (dry-run first)</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="at">--source-dir</span> force-app <span class="at">--target-org</span> titan-full <span class="at">--dry-run</span> <span class="at">--wait</span> 10</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="at">--source-dir</span> force-app <span class="at">--target-org</span> titan-full <span class="at">--wait</span> 15</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Deploy with destructive changes (e.g. xD field deletion pattern)</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> project deploy start <span class="dt">\</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">--manifest</span> deploy-package.xml <span class="dt">\</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">--post-destructive-changes</span> destructive/destructiveChanges.xml <span class="dt">\</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">--target-org</span> titan-full <span class="at">--wait</span> 15</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Run all Apex tests after a deploy</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> apex run test <span class="at">--target-org</span> titan-full <span class="at">--result-format</span> human</span></code></pre></div>
+<h3 id="62-deployment-workflow">6.2 Deployment workflow</h3>
+<ol type="1">
+<li><strong>Develop in <code>titan-dev</code></strong> (or feature
+branch retrieve-and-edit).</li>
+<li><strong>Log change in <code>docs/CHANGE-LOG.md</code></strong>
+before pushing to UAT.</li>
+<li><strong>Dry-run</strong> against <code>titan-full</code>
+(<code>--dry-run</code>).</li>
+<li><strong>Deploy to <code>titan-full</code></strong> (UAT). Verify
+smoke tests + UAT acceptance.</li>
+<li><strong>Production cutover</strong> as a separate, scheduled event
+with the pre-cutover checklist (§7) executed in advance.</li>
+</ol>
+<h3 id="63-org-discovery--re-baseline-pattern">6.3 Org-discovery /
+re-baseline pattern</h3>
+<p>Per <code>Relkor/CLAUDE.md</code> "Always Verify Schema Before
+Assuming":</p>
+<ol type="1">
+<li>Pull metadata inventories from each org
+(<code>sf org list metadata --metadata-type X</code>).</li>
+<li>Cache as JSON under
+<code>metadata/snapshots/&lt;alias&gt;/</code>.</li>
+<li>Diff against the source-of-truth org (UAT for this project).</li>
+<li><strong>For any field/picklist value referenced in code or layouts,
+verify it exists in the TARGET org</strong> before deploy. Lesson
+learned: <code>LOB__c</code> was assumed prod-resident because it
+existed in Dev; turned out to be a scratch-org artifact.</li>
+</ol>
+<h3 id="64-picklist-deploy-gotchas-learned-in-sprint-2">6.4 Picklist
+deploy gotchas (learned in Sprint 2)</h3>
+<ul>
+<li><strong>GVS values added to a GVS DO NOT automatically become
+available on Record Types</strong> that have explicit
+<code>picklistValues</code> blocks. You must update the Record Type
+metadata too.</li>
+<li><strong>Inactive GVS values cannot be referenced</strong> in
+<code>picklistValues</code> blocks — filter them out when generating XML
+programmatically.</li>
+<li><strong>Special characters</strong> in picklist values (commas,
+etc.) are tricky to encode in <code>picklistValues</code> — easiest
+workaround when feasible is to simply exclude such values from a Record
+Type's allowed list if they aren't used by that RT.</li>
+<li><strong>GVS deploy "Unchanged" warning</strong>
+(<code>Status_Code_GVS__gvs returned from org, but not found in the local project</code>)
+is a benign sf CLI quirk — the deploy actually works; verify via Tooling
+REST API rather than <code>lastModifiedDate</code>.</li>
+</ul>
+<h3 id="65-flexipage-tricks">6.5 FlexiPage tricks</h3>
+<ul>
+<li>Visibility rules <strong>only support <code>EQUAL</code> and
+<code>NOT_EQUAL</code></strong> for component visibility. To express
+"count &gt; 0", create a boolean formula field
+(<code>Has_X__c = Count__c &gt; 0</code>) and check
+<code>EQUAL true</code>.</li>
+<li>Field-type column references in List Views: standard Case fields use
+<code>CASES.&lt;NAME&gt;</code> (e.g., <code>CASES.SUBJECT</code>);
+custom fields use the API name (<code>Titan_Net_Balance__c</code>);
+owner column is <code>OWNER_NAME</code>. Boolean filter values must be
+<code>1</code>/<code>0</code>, not
+<code>true</code>/<code>false</code>.</li>
+<li>Queue-bound List Views set
+<code>&lt;filterScope&gt;Queue&lt;/filterScope&gt;</code> and
+<code>&lt;queue&gt;QueueDevName&lt;/queue&gt;</code> (not Sharing
+settings).</li>
+</ul>
+<h3 id="66-queue-membership">6.6 Queue membership</h3>
+<p>The
+<code>&lt;queueMembers&gt;&lt;publicGroups&gt;X&lt;/publicGroups&gt;&lt;/queueMembers&gt;</code>
+block in a Queue's metadata XML may not actually create membership
+records at deploy time. After deploy, if the Queue has no members:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sf</span> data create record <span class="at">--sobject</span> GroupMember <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--values</span> <span class="st">&quot;GroupId=&lt;queue-id&gt; UserOrGroupId=&lt;group-id&gt;&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--target-org</span> titan-full</span></code></pre></div>
+<hr />
+<h2 id="7-production-cutover-plan">7. Production Cutover Plan</h2>
+<h3 id="71-items-in-the-cutover-bundle">7.1 Items in the cutover
+bundle</h3>
+<p>Both R3 baseline and Sprint 2 land together. Total scope:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Apex classes</td>
+<td>≈14</td>
+</tr>
+<tr>
+<td>Triggers</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Custom fields</td>
+<td>≈25 created, 1 formula updated, 6 deleted</td>
+</tr>
+<tr>
+<td>Sharing rules</td>
+<td>2 new (+ 5 existing)</td>
+</tr>
+<tr>
+<td>Permission Sets</td>
+<td>4 new</td>
+</tr>
+<tr>
+<td>Permission Set Groups</td>
+<td>3 new</td>
+</tr>
+<tr>
+<td>Queues</td>
+<td>3 new</td>
+</tr>
+<tr>
+<td>List Views</td>
+<td>4 new</td>
+</tr>
+<tr>
+<td>Page Layouts</td>
+<td>2 modified</td>
+</tr>
+<tr>
+<td>Lightning Record Pages</td>
+<td>1 new + 2 modified</td>
+</tr>
+<tr>
+<td>Compact Layouts</td>
+<td>1 modified</td>
+</tr>
+<tr>
+<td>GlobalValueSets</td>
+<td>2 modified (5 new values total)</td>
+</tr>
+<tr>
+<td>Record Type picklistValues</td>
+<td>1 ARR EG record type updated</td>
+</tr>
+<tr>
+<td>CMDT records</td>
+<td>2 (<code>Archival_Config__mdt</code>)</td>
+</tr>
+<tr>
+<td>Encounter_Guidance__c records</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72-pre-cutover-checklist">7.2 Pre-cutover checklist</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Run a fresh test pass and confirm
+coverage on everything in scope
+(<code>sf apex run test --target-org titan-full</code>)</label></li>
+<li><label><input type="checkbox" />Schedule a maintenance window —
+estimate <strong>2–4 hours for sharing recalc against 4.2M
+Cases</strong></label></li>
+<li><label><input type="checkbox" />Confirm TH-345 schedulable cadence
+with stakeholders (TH-345 schedulables are deployed but inactive —
+production activation is a separate step)</label></li>
+<li><label><input type="checkbox" />Verify Athena (Tim's) integration is
+tested end-to-end against UAT</label></li>
+<li><label><input type="checkbox" />Walk through TH-345 runbook with
+Tim's team</label></li>
+<li><label><input type="checkbox" />User training: ARR list views, new
+Payor lookup behavior, the new ARR queue + Status Codes</label></li>
+<li><label><input type="checkbox" />Comms plan: ZB users (no change for
+them), ARR users (go-live of their client-isolated views), supervisors
+(queue + status code training)</label></li>
+<li><label><input type="checkbox" />Verify all 7 Sprint 2 stories pass
+UAT acceptance with Jon</label></li>
+<li><label><input type="checkbox" />Confirm
+<code>xD_Payor_Balance__c</code> data on the 14,258 EP records is no
+longer needed (it was deleted from UAT 2026-05-01; same will apply to
+Prod)</label></li>
+<li><label><input type="checkbox" />Pull a <strong>fresh schema diff
+between <code>titan-full</code> and <code>titan-prod</code></strong>
+(re-run <code>metadata/snapshots/</code> workflow) to identify anything
+Al may have changed in Prod since the last UAT refresh</label></li>
+</ul>
+<h3 id="73-rollback-pattern">7.3 Rollback pattern</h3>
+<p>For destructive changes (xD field deletion is the only one in scope),
+Salesforce's recycle bin retains deleted custom fields and their data
+<strong>for 15 days</strong>. Within that window, restoration is
+possible via Setup UI. Beyond 15 days, recovery requires backup/restore
+tooling.</p>
+<hr />
+<h2 id="8-open-items--known-issues">8. Open Items / Known Issues</h2>
+<h3 id="carry-over-from-mitch-still-unresolved">Carry-over from Mitch
+(still unresolved)</h3>
+<ol type="1">
+<li><strong>List View bypass risk</strong> — users can update Status
+Codes via inline edits in List Views, bypassing Screen Flow validations.
+Mitch's recommendation: block manual Status Code updates entirely
+outside flows. <strong>Decision needed before prod
+cutover.</strong></li>
+<li><strong><code>Delete Files Flow</code> SOQL bug</strong> — flow that
+deletes attached files when an encounter closes is reportedly hitting
+"Too many SOQL queries: 201." Unverified in current UAT — worth a quick
+test.</li>
+<li><strong>Validation rule on ownership changes</strong> — Mitch noted
+a VR repeatedly enabled and disabled. Confirm current state.</li>
+<li><strong>UX Filtering gap for non-owner Auditors</strong> — flow
+buttons hidden unless Record Owner or Custom Permission. Auditors on
+Case Team may be blocked. Confirm Custom Permission grant.</li>
+<li><strong>Named-individual public groups</strong>
+(<code>Kim_ZB_Leadership</code>, <code>Melinda_and_Kristin</code>,
+<code>Test_Group</code>, <code>Sandbox_Admins</code>) — anti-pattern.
+Audit before prod cutover.</li>
+</ol>
+<h3 id="from-r3-sprint-2">From R3 Sprint 2</h3>
+<ol start="6" type="1">
+<li><strong>TH-584 Status Code restriction</strong> — spec said
+"selectable for ARR only" but the implementation just adds values to GVS
+without ZB-side restriction (consistent with the existing pattern in
+this org). If strict enforcement is later required, add
+<code>&lt;picklistValues&gt;</code> blocks to the ZB record types
+excluding the new ARR values.</li>
+<li><strong>Dev's Lightning page parity</strong> — Sprint 2 page-layout
+changes are UAT-only. Bringing Dev to parity would require restructuring
+its single <code>Titan_Health_Case_Record_Page</code> into
+per-record-type pages — defer unless needed.</li>
+<li><strong>TH-586 routing automation</strong> — the new Encounter
+Guidance record points "Sent to Coding" → owner
+<code>Collections</code>, which by convention routes to
+<code>ARR_Collections</code> queue. Confirm the downstream automation
+(Flow/trigger) maps correctly after deploy.</li>
+</ol>
+<hr />
+<h2 id="9-sign-off">9. Sign-Off</h2>
+<table>
+<thead>
+<tr>
+<th>Approver</th>
+<th>Role</th>
+<th>Status</th>
+<th>Date</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bryant Daniels</td>
+<td>Tech Lead, Relkor</td>
+<td><em>Pending</em></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Al Reveles</td>
+<td>Salesforce Admin, Titan Health</td>
+<td><em>Pending</em></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>John Conway</td>
+<td>Business Owner, Titan Health</td>
+<td><em>Pending</em></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Jon</td>
+<td>UAT tester, Titan Health</td>
+<td><em>Pending</em></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Tim</td>
+<td>Integration owner (TH-345)</td>
+<td><em>Pending</em></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="10-references">10. References</h2>
+<h3 id="r3-baseline-docs">R3 baseline docs</h3>
+<ul>
+<li><a
+href="../SA-SOLUTION-SHARING-MODEL.md">docs/SA-SOLUTION-SHARING-MODEL.md</a>
+— sharing-model design rationale</li>
+<li><a
+href="../IMPLEMENTATION-STORIES.md">docs/IMPLEMENTATION-STORIES.md</a> —
+story-by-story plan</li>
+<li><a href="../CHANGE-LOG.md">docs/CHANGE-LOG.md</a> — deployment
+log</li>
+<li><a
+href="../TH-486-LOB-Access-Configuration.md">docs/TH-486-LOB-Access-Configuration.md</a>,
+<a
+href="../TH-489-Unassigned-Encounter-Restriction.md">docs/TH-489-Unassigned-Encounter-Restriction.md</a></li>
+<li><a href="../TH-345/">docs/TH-345/</a> — full archival pipeline
+docset</li>
+<li><a
+href="../TH-345-FULL-COPY-RUNBOOK.html">docs/TH-345-FULL-COPY-RUNBOOK.html</a>
+— interactive UAT runbook</li>
+<li><a
+href="../TITAN-HEALTH-UAT-RESULTS.md">docs/TITAN-HEALTH-UAT-RESULTS.md</a>
+— UAT pass/fail tracker</li>
+</ul>
+<h3 id="r3-sprint-2-sources">R3 Sprint 2 sources</h3>
+<ul>
+<li><a href="../Post%20stories/">docs/Post stories/</a> — 7 raw spec
+docs from Jon</li>
+<li><a href="../../build/">build/</a> — Dev metadata (working source for
+Sprint 2)</li>
+<li><a href="../../uat-build/">uat-build/</a> — UAT-aware metadata
+(final deployed version)</li>
+</ul>
+<h3 id="org-snapshots">Org snapshots</h3>
+<ul>
+<li><a
+href="../../metadata/ORG-DISCOVERY-SUMMARY.md">metadata/ORG-DISCOVERY-SUMMARY.md</a>
+— initial discovery (2026-04-30)</li>
+<li><a
+href="../../metadata/snapshots/UAT-vs-DEV-diff.md">metadata/snapshots/UAT-vs-DEV-diff.md</a>
+— full UAT-vs-Dev diff (2026-05-01)</li>
+<li><a
+href="../../metadata/snapshots/UAT-vs-DEV-actionable.md">metadata/snapshots/UAT-vs-DEV-actionable.md</a>
+— themed actionable view</li>
+<li><a href="../erd/">docs/erd/</a> — ERD (Lucid)</li>
+</ul>
+<h3 id="mitchs-pre-existing-handoff-notebooklm-corpus">Mitch's
+pre-existing handoff (NotebookLM corpus)</h3>
+<ul>
+<li>NotebookLM notebook: <strong>"Titan Health — Mitch Knowledge
+Transfer"</strong></li>
+<li><a href="../Reference%20Material%20from%20Mitch/">docs/Reference
+Material from Mitch/</a> — Parting Notes, NWM/HH ROs, encounter
+mappings, March 2026 org analysis</li>
+</ul>
+<hr />
+<h2 id="11-glossary">11. Glossary</h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ARR</strong></td>
+<td>Accounts Receivable Resolution — new line of business in R3</td>
+</tr>
+<tr>
+<td><strong>ZB</strong></td>
+<td>Zero Balance — existing line of business</td>
+</tr>
+<tr>
+<td><strong>LOB</strong></td>
+<td>Line of Business</td>
+</tr>
+<tr>
+<td><strong>Encounter</strong></td>
+<td>Patient encounter (medical visit) — represented as a Case
+record</td>
+</tr>
+<tr>
+<td><strong>Encounter Payor</strong></td>
+<td>Insurance/payor relationship for an encounter — child of Case
+(<code>Encounter_Payor__c</code>)</td>
+</tr>
+<tr>
+<td><strong>OWD</strong></td>
+<td>Org-Wide Default — platform's default access level. "Private" = only
+owner sees by default</td>
+</tr>
+<tr>
+<td><strong>Sharing Rule</strong></td>
+<td>Automatically grants access to records meeting certain criteria</td>
+</tr>
+<tr>
+<td><strong>Permission Set / PSG</strong></td>
+<td>Controls field/object/feature access; PSG bundles them</td>
+</tr>
+<tr>
+<td><strong>Public Group</strong></td>
+<td>List of users/groups/roles used by sharing rules and queue
+membership</td>
+</tr>
+<tr>
+<td><strong>Queue</strong></td>
+<td>Holding area for records awaiting assignment; can own records</td>
+</tr>
+<tr>
+<td><strong>Record Type</strong></td>
+<td>Mechanism for distinguishing different kinds of the same object
+(e.g., ARR vs ZB Cases)</td>
+</tr>
+<tr>
+<td><strong>Case Team</strong></td>
+<td>List of users granted access to a specific Case beyond what sharing
+rules grant</td>
+</tr>
+<tr>
+<td><strong>Schedulable</strong></td>
+<td>Apex class running on a configurable schedule (cron-like)</td>
+</tr>
+<tr>
+<td><strong>Athena</strong></td>
+<td>AWS's serverless analytics database — where archived encounters
+land</td>
+</tr>
+<tr>
+<td><strong>CMDT</strong></td>
+<td>Custom Metadata Type — configuration stored as metadata</td>
+</tr>
+<tr>
+<td><strong>GVS</strong></td>
+<td>Global Value Set — picklist values shared across multiple
+fields</td>
+</tr>
+<tr>
+<td><strong>FlexiPage</strong></td>
+<td>Lightning Record Page metadata format</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<blockquote>
+<p><strong>Status:</strong> Working copy. Add comments inline; sign off
+when ready; bring questions to next sync.</p>
+</blockquote>
+  </article>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

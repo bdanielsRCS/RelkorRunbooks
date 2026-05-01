@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TH-486 — LOB Access Configuration — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+  .toc-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 18px 0 28px;
+    font-size: 14px;
+  }
+  .toc-box strong { color: var(--accent-bright); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <a href="./">Titan Health</a>
+    <span class="nav-sep">›</span>
+    <span>TH-486 — LOB Access Configuration</span>
+  </nav>
+
+  <article class="doc-body">
+<h1 id="th-486--notion-section-content">TH-486 — Notion Section
+Content</h1>
+<p>Paste each section below into the matching toggle on the TH-486
+Notion page.</p>
+<hr />
+<h2 id="task-description--reference-documentation">Task Description
+&amp; Reference Documentation</h2>
+<h3 id="current-state">Current State</h3>
+<ul>
+<li>Case OWD is set to <strong>Private</strong></li>
+<li>ZB sharing model is fully operational using
+<strong>role-based</strong> public groups:
+<ul>
+<li><code>ZB - Encounter Read Only Access</code> (Reimbursement Auditors
+I–IV, Client Success Manager)</li>
+<li><code>ZB - Encounter Read/Edit Access</code> (Payor Collections
+Specialists I–IV, Claims Analyst)</li>
+</ul></li>
+<li>ZB sharing rules are active — all ZB users see all ZB encounters (no
+client-level isolation)</li>
+<li>ARR line of business has <strong>no sharing model</strong> — ARR
+users currently cannot see any ARR encounters due to Private OWD</li>
+<li>ZB and ARR record types both exist on Case</li>
+<li>Role hierarchy is production-current (Program Administrator &gt;
+Supervisor &gt; worker roles)</li>
+</ul>
+<h3 id="ideal-state">Ideal State</h3>
+<ul>
+<li>ARR users can see and work encounters for <strong>only the clients
+they are assigned to</strong> (client-level data isolation)</li>
+<li>Program Admins can control LOB access by adding/removing users from
+client-specific public groups — no code changes required</li>
+<li>ARR and ZB users are fully isolated from each other's encounters
+unless a user is intentionally assigned to both</li>
+<li>Dual-LOB users (working both ARR and ZB) see the correct encounters
+for each LOB</li>
+<li>Field-level security enforces tiered access: collectors vs.
+supervisors vs. admins</li>
+<li>New ARR clients can be onboarded through a simple group + sharing
+rule process</li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li>Implementation stories:
+<code>Titan-Health-R3-Implementation-Stories.html</code> (Stories 1,
+3–9)</li>
+<li>Sharing architecture review transcript:
+<code>Titan Health Sharing Arch Review.txt</code></li>
+</ul>
+<hr />
+<h2 id="technical-configuration-notes">Technical Configuration
+Notes</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Case OWD = Private
+(confirmed)</label></li>
+<li><label><input type="checkbox" />ZB and ARR record types exist on
+Case (confirmed)</label></li>
+<li><label><input type="checkbox" />Role hierarchy is production-current
+(confirmed)</label></li>
+<li><label><input type="checkbox" />ZB groups and sharing rules are
+active (confirmed)</label></li>
+</ul>
+<h3 id="1-public-groups">1. Public Groups</h3>
+<p>Create 4 manual-membership public groups. <strong>Grant Access Using
+Hierarchies</strong> checked on all.</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>API Name</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR - All Users</td>
+<td>ARR_All_Users</td>
+<td>UI visibility only (list views, reports). NOT used for data
+access</td>
+</tr>
+<tr>
+<td>ARR - Supervisors</td>
+<td>ARR_Supervisors</td>
+<td>Queue membership for ARR queues (see TH-489)</td>
+</tr>
+<tr>
+<td>ARR - Client NWM</td>
+<td>ARR_Client_NWM</td>
+<td>Data sharing — Northwestern Memorial cases</td>
+</tr>
+<tr>
+<td>ARR - Client ABC</td>
+<td>ARR_Client_ABC</td>
+<td>Data sharing — Atlantic Blue Cross cases</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key difference from ZB:</strong> ARR groups use
+<strong>manual membership</strong> (individual users), not roles. The
+same role (e.g., Payor Collections Specialist II) could work any ARR
+client, so role-based groups would not provide client isolation.</p>
+<p>Do NOT add members yet — that happens after sharing rules are in
+place (step 3 below).</p>
+<h3 id="2-sharing-rules-client-specific">2. Sharing Rules
+(Client-Specific)</h3>
+<p>Create <strong>one criteria-based sharing rule per ARR
+client</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Rule Name</th>
+<th>Criteria</th>
+<th>Share With</th>
+<th>Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR_Client_NWM_Access</td>
+<td>LOB__c = ARR AND Import_Client__c = NWM</td>
+<td>ARR - Client NWM</td>
+<td>Read/Write</td>
+</tr>
+<tr>
+<td>ARR_Client_ABC_Access</td>
+<td>LOB__c = ARR AND Import_Client__c = ABC</td>
+<td>ARR - Client ABC</td>
+<td>Read/Write</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>⚠️ Do NOT create a blanket ARR LOB-wide sharing rule. A rule like
+"LOB = ARR → ARR All Users" would let every ARR user see every client's
+cases, defeating client isolation entirely.</p>
+</blockquote>
+<p>Allow time for sharing rule recalculation (4M+ records).</p>
+<h3 id="3-permission-sets">3. Permission Sets</h3>
+<p>Three tiered permission sets:</p>
+<p><strong>ARR Collector Base</strong> (ARR_Collector_Base)</p>
+<ul>
+<li>Case: Read, Edit (no Create, no Delete)</li>
+<li>ARR Record Type: Visible</li>
+<li>Read + Edit: LOB, Import Client, Import Client Identifier, Next Work
+Date, Result Code, Root Cause, Payor</li>
+<li>Read Only: Status Code Category, Contingency Rate, Encounter Amount,
+ARR Collector, ARR Supervisor</li>
+</ul>
+<p><strong>ARR Supervisor Elevated</strong>
+(ARR_Supervisor_Elevated)</p>
+<ul>
+<li>Case: Create, Read, Edit (no Delete)</li>
+<li>ARR Record Type: Visible</li>
+<li>Read + Edit: All ARR fields (including Status Code Category,
+Contingency Rate, Encounter Amount, ARR Collector, ARR Supervisor)</li>
+</ul>
+<p><strong>ARR Admin</strong> (ARR_Admin)</p>
+<ul>
+<li>Case: Create, Read, Edit (no Delete)</li>
+<li>Payor__c: Create, Read, Edit (no Delete)</li>
+<li>ARR Record Type: Visible</li>
+<li>Read + Edit: All ARR fields</li>
+</ul>
+<h3 id="4-record-type-picklist-filtering">4. Record Type Picklist
+Filtering</h3>
+<p>Restrict Root Cause picklist values by record type:</p>
+<ul>
+<li><strong>ARR available values:</strong> Billing Error, Insurance
+Denial, Patient Responsibility, Other</li>
+<li><strong>ARR must NOT include:</strong> Coding Error
+(ZB-specific)</li>
+<li><strong>ZB:</strong> No change — all values including Coding
+Error</li>
+</ul>
+<h3 id="5-user-assignments">5. User Assignments</h3>
+<table>
+<thead>
+<tr>
+<th>User Type</th>
+<th>Public Groups</th>
+<th>Permission Set</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR Collector (single client)</td>
+<td>ARR_Client_[CODE], ARR_All_Users</td>
+<td>ARR Collector Base</td>
+</tr>
+<tr>
+<td>ARR Collector (multi-client)</td>
+<td>ARR_Client_[CODE1], [CODE2], ARR_All_Users</td>
+<td>ARR Collector Base</td>
+</tr>
+<tr>
+<td>ARR Supervisor</td>
+<td>ARR_Client_[CODEs], ARR_Supervisors, ARR_All_Users</td>
+<td>ARR Supervisor Elevated</td>
+</tr>
+<tr>
+<td>ZB-only user</td>
+<td>(none needed)</td>
+<td>ZB Collector Base</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>ARR_Client_[all], ARR_Supervisors, ARR_All_Users</td>
+<td>ARR Admin</td>
+</tr>
+</tbody>
+</table>
+<p>ZB access remains automatic via role-based groups — no additional
+assignment needed.</p>
+<h3 id="6-list-views">6. List Views</h3>
+<p>Create ARR-specific list views shared only with ARR groups:</p>
+<table>
+<thead>
+<tr>
+<th>List View</th>
+<th>Filter</th>
+<th>Shared With</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR - My Encounters</td>
+<td>LOB = ARR AND Owner = Current User</td>
+<td>ARR - All Users</td>
+</tr>
+<tr>
+<td>ARR - Unassigned Queue</td>
+<td>LOB = ARR AND Owner = Queue: ARR - Unassigned</td>
+<td>ARR - Supervisors</td>
+</tr>
+<tr>
+<td>ARR - Collections Queue</td>
+<td>LOB = ARR AND Owner = Queue: ARR - Collections</td>
+<td>ARR - Supervisors</td>
+</tr>
+</tbody>
+</table>
+<p>Suggested columns: Case Number, Subject, Import Client, Status,
+Encounter Amount, Next Work Date</p>
+<h3 id="7-payor-validation-rule">7. Payor Validation Rule</h3>
+<p>Create validation rule <code>Payor_Must_Match_Client_And_LOB</code>
+on Case:</p>
+<ul>
+<li><strong>Condition:</strong> Payor is selected AND (Payor's Client__c
+≠ Case's Import_Client__c OR Payor's LOB__c ≠ Case's LOB__c and Payor's
+LOB__c ≠ "Both")</li>
+<li><strong>Error:</strong> "Selected Payor does not match this
+Encounter's Client and Line of Business."</li>
+<li><strong>Location:</strong> Payor field</li>
+</ul>
+<p>A lookup filter would be better UX but cannot reference text fields.
+Validation rule provides equivalent server-side enforcement.</p>
+<h3 id="adding-a-new-arr-client-runbook">Adding a New ARR Client
+(Runbook)</h3>
+<ol type="1">
+<li><strong>Create Public Group:</strong> ARR - Client [CODE] — manual
+membership, Grant Access Using Hierarchies checked</li>
+<li><strong>Create Sharing Rule:</strong> Criteria = LOB = ARR AND
+Import Client = [CODE] → Share with ARR - Client [CODE] at
+Read/Write</li>
+<li><strong>Add Users:</strong> Assign collectors and supervisors to the
+new group</li>
+</ol>
+<p>No code, no deployment. Access takes effect after sharing rule
+recalculation.</p>
+<blockquote>
+<p>Scalability: SF limits criteria-based sharing rules to 50 per object.
+Each ARR client = 1 rule. Supports ~45 clients accounting for ZB rules.
+Apex Managed Sharing solution is built and tested if needed.</p>
+</blockquote>
+<hr />
+<h2 id="technical-acceptance-criteria">Technical Acceptance
+Criteria</h2>
+<ul class="task-list">
+<li><label><input type="checkbox" />All 4 ARR public groups created with
+manual membership and Grant Access Using Hierarchies
+checked</label></li>
+<li><label><input type="checkbox" />Two criteria-based sharing rules
+created (one per client: NWM, ABC)</label></li>
+<li><label><input type="checkbox" />No blanket ARR LOB-wide sharing rule
+exists</label></li>
+<li><label><input type="checkbox" />Three permission sets created
+(Collector Base, Supervisor Elevated, Admin) with correct
+FLS</label></li>
+<li><label><input type="checkbox" />Collectors cannot edit
+supervisor-only fields (Status Code Category, Contingency Rate,
+Encounter Amount)</label></li>
+<li><label><input type="checkbox" />ARR record type does NOT show
+"Coding Error" in Root Cause picklist</label></li>
+<li><label><input type="checkbox" />ZB record type still includes all
+values including "Coding Error"</label></li>
+<li><label><input type="checkbox" />Three ARR list views created and
+shared with correct groups</label></li>
+<li><label><input type="checkbox" />ZB users do NOT see ARR list
+views</label></li>
+<li><label><input type="checkbox" />Payor validation rule active —
+mismatched Payor blocked, LOB = "Both" allowed</label></li>
+<li><label><input type="checkbox" />ARR collector in NWM group sees NWM
+ARR cases only — 0 ABC cases</label></li>
+<li><label><input type="checkbox" />ARR collector in ABC group sees ABC
+ARR cases only — 0 NWM cases</label></li>
+<li><label><input type="checkbox" />ZB-only user sees 0 ARR
+cases</label></li>
+<li><label><input type="checkbox" />Dual-LOB user sees correct
+encounters for both LOBs</label></li>
+<li><label><input type="checkbox" />Supervisors and Program
+Administrators inherit access via hierarchy</label></li>
+<li><label><input type="checkbox" />ZB two-tier access intact: Auditors
+= Read Only, Payor Collections = Read/Write</label></li>
+</ul>
+<h3
+id="validation-queries-run-as-each-user-type-via-login-as">Validation
+Queries (run as each user type via Login As)</h3>
+<pre><code>SELECT COUNT() FROM Case WHERE LOB__c = &#39;ARR&#39;
+SELECT COUNT() FROM Case WHERE LOB__c = &#39;ZB&#39;
+SELECT COUNT() FROM Case WHERE Import_Client__c = &#39;NWM&#39;
+SELECT COUNT() FROM Case WHERE Import_Client__c = &#39;ABC&#39;</code></pre>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>Role</th>
+<th>ARR</th>
+<th>ZB</th>
+<th>NWM</th>
+<th>ABC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR Collector (NWM only)</td>
+<td>Payor Coll Spec</td>
+<td>NWM only</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>ARR Collector (ABC only)</td>
+<td>Payor Coll Spec</td>
+<td>ABC only</td>
+<td>&gt; 0</td>
+<td>0</td>
+<td>&gt; 0</td>
+</tr>
+<tr>
+<td>ARR Supervisor (all clients)</td>
+<td>Supervisor</td>
+<td>All ARR</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+</tr>
+<tr>
+<td>ZB Auditor</td>
+<td>Reimb Auditor</td>
+<td>0</td>
+<td>&gt; 0 (RO)</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>ZB Worker</td>
+<td>Claims Analyst</td>
+<td>0</td>
+<td>&gt; 0 (R/W)</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Dual-LOB (ARR NWM + ZB)</td>
+<td>Any worker</td>
+<td>NWM only</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Program Administrator</td>
+<td>Program Admin</td>
+<td>All ARR</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="metadata-components-for-deployment">Metadata Components for
+Deployment</h2>
+<ul>
+<li>4 Public Groups (ARR_All_Users, ARR_Supervisors, ARR_Client_NWM,
+ARR_Client_ABC)</li>
+<li>2 Sharing Rules (ARR_Client_NWM_Access, ARR_Client_ABC_Access)</li>
+<li>3 Permission Sets (ARR_Collector_Base, ARR_Supervisor_Elevated,
+ARR_Admin)</li>
+<li>1 Validation Rule (Payor_Must_Match_Client_And_LOB on Case)</li>
+<li>Record Type picklist value assignments (Root Cause on ARR)</li>
+<li>3 List Views (ARR - My Encounters, ARR - Unassigned Queue, ARR -
+Collections Queue)</li>
+</ul>
+  </article>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>

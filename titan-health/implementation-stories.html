@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Implementation Stories — Relkor Runbooks</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+  .toc-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 20px;
+    margin: 18px 0 28px;
+    font-size: 14px;
+  }
+  .toc-box strong { color: var(--accent-bright); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="../">Relkor Runbooks</a>
+    <span class="nav-sep">›</span>
+    <a href="./">Titan Health</a>
+    <span class="nav-sep">›</span>
+    <span>Implementation Stories</span>
+  </nav>
+
+  <article class="doc-body">
+<h1
+id="titan-health--release-3-arr-sharing-model-implementation-stories">Titan
+Health — Release 3: ARR Sharing Model Implementation Stories</h1>
+<p><strong>Prepared by:</strong> Bryant Daniels, Relkor Cloud Solutions
+LLC <strong>Date:</strong> 2026-04-02 <strong>For:</strong> Al Reveles
+(Titan Health) <strong>Reference:</strong> SA-SOLUTION-SHARING-MODEL
+(docs/)</p>
+<hr />
+<h2 id="prerequisites">Prerequisites</h2>
+<p>These stories assume the following are already in place (confirmed in
+production):</p>
+<ul>
+<li>Case OWD = <strong>Private</strong></li>
+<li>ZB record type and ARR record type both exist on Case</li>
+<li>Role hierarchy is production-current (Program Administrator &gt;
+Supervisor &gt; worker roles)</li>
+<li>ZB groups already created:
+<ul>
+<li><code>ZB - Encounter Read Only Access</code> (Reimbursement Auditors
+I–IV, Client Success Manager)</li>
+<li><code>ZB - Encounter Read/Edit Access</code> (Payor Collections
+Specialists I–IV, Claims Analyst)</li>
+</ul></li>
+<li>ZB sharing rules already active</li>
+</ul>
+<hr />
+<h2 id="story-1-create-arr-client-specific-public-groups">Story 1:
+Create ARR Client-Specific Public Groups</h2>
+<p><strong>As a</strong> Salesforce Admin, <strong>I want to</strong>
+create Public Groups for each ARR client, <strong>So that</strong> I can
+control which users see which client's ARR encounters.</p>
+<h3 id="why">Why</h3>
+<p>ARR requires client-level data isolation. Unlike ZB (where all users
+see all ZB cases), ARR users should only see encounters for clients they
+are assigned to. Each client gets its own Public Group, and sharing
+rules grant access based on group membership.</p>
+<h3 id="steps-to-implement">Steps to Implement</h3>
+<ol type="1">
+<li>Go to <strong>Setup &gt; Users &gt; Public Groups</strong></li>
+<li>Create the following groups:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Group Name (API)</th>
+<th>Description</th>
+<th>Grant Access Using Hierarchies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR - All Users</td>
+<td>ARR_All_Users</td>
+<td>UI visibility — list views and reports for ARR users. NOT used for
+data access.</td>
+<td>Checked</td>
+</tr>
+<tr>
+<td>ARR - Supervisors</td>
+<td>ARR_Supervisors</td>
+<td>Queue membership for ARR unassigned/collections queues</td>
+<td>Checked</td>
+</tr>
+<tr>
+<td>ARR - Client NWM</td>
+<td>ARR_Client_NWM</td>
+<td>Data sharing — controls who sees Northwestern Memorial cases</td>
+<td>Checked</td>
+</tr>
+<tr>
+<td>ARR - Client ABC</td>
+<td>ARR_Client_ABC</td>
+<td>Data sharing — controls who sees Atlantic Blue Cross cases</td>
+<td>Checked</td>
+</tr>
+</tbody>
+</table>
+<ol start="3" type="1">
+<li><p>For each group, set the <strong>Type</strong> to the
+following:</p>
+<ul>
+<li>All groups above are <strong>manual membership</strong> (add
+individual users, NOT roles)</li>
+<li>This is different from the ZB groups which are role-based. ARR
+groups must be manual because the same role (e.g., Payor Collections
+Specialist II) could work any ARR client.</li>
+</ul></li>
+<li><p><strong>Do NOT add members yet</strong> — that happens in Story 6
+after sharing rules are in place.</p></li>
+</ol>
+<h3 id="acceptance-criteria">Acceptance Criteria</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />All 4 groups exist in Setup &gt;
+Public Groups</label></li>
+<li><label><input type="checkbox" />All groups have "Grant Access Using
+Hierarchies" checked</label></li>
+<li><label><input type="checkbox" />No members added yet (empty
+groups)</label></li>
+</ul>
+<h3 id="testing-steps">Testing Steps</h3>
+<ol type="1">
+<li>Navigate to Setup &gt; Public Groups</li>
+<li>Verify each group exists with the correct API name</li>
+<li>Click into each group and confirm "Grant Access Using Hierarchies"
+is checked</li>
+<li>Confirm member list is empty</li>
+</ol>
+<hr />
+<h2 id="story-2-create-arr-queues">Story 2: Create ARR Queues</h2>
+<p><strong>As a</strong> Salesforce Admin, <strong>I want to</strong>
+create queues for ARR encounters, <strong>So that</strong> imported ARR
+encounters land in an unassigned queue that only supervisors can
+see.</p>
+<h3 id="why-1">Why</h3>
+<p>When ARR encounters are imported, they should not be visible to
+collectors until a supervisor assigns them. Queue-owned records inherit
+the OWD (Private), so only queue members can see them.</p>
+<h3 id="steps-to-implement-1">Steps to Implement</h3>
+<ol type="1">
+<li>Go to <strong>Setup &gt; Queues</strong> (search "Queues" in Quick
+Find)</li>
+<li>Create the following queues:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Queue Label</th>
+<th>Queue Name</th>
+<th>Supported Objects</th>
+<th>Queue Members</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR - Unassigned</td>
+<td>ARR_Unassigned</td>
+<td>Case</td>
+<td>ARR - Supervisors group</td>
+</tr>
+<tr>
+<td>ARR - Collections</td>
+<td>ARR_Collections</td>
+<td>Case</td>
+<td>ARR - Supervisors group</td>
+</tr>
+</tbody>
+</table>
+<ol start="3" type="1">
+<li>For each queue:
+<ul>
+<li>Add the <strong>ARR - Supervisors</strong> public group as a
+member</li>
+<li>Do NOT add individual collectors</li>
+<li>Uncheck "Send Email to Members" (optional — depends on notification
+preferences)</li>
+</ul></li>
+</ol>
+<h3 id="acceptance-criteria-1">Acceptance Criteria</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Both queues exist</label></li>
+<li><label><input type="checkbox" />Both queues support Case
+objects</label></li>
+<li><label><input type="checkbox" />Only the ARR - Supervisors group is
+a member of each queue</label></li>
+<li><label><input type="checkbox" />No collectors are queue
+members</label></li>
+</ul>
+<h3 id="testing-steps-1">Testing Steps</h3>
+<ol type="1">
+<li>Navigate to Setup &gt; Queues</li>
+<li>Verify both queues exist with correct names</li>
+<li>Click into each queue and confirm ARR - Supervisors is the only
+member</li>
+<li>Verify Case is listed under Supported Objects</li>
+</ol>
+<hr />
+<h2 id="story-3-create-arr-sharing-rules-client-specific">Story 3:
+Create ARR Sharing Rules (Client-Specific)</h2>
+<p><strong>As a</strong> Salesforce Admin, <strong>I want to</strong>
+create criteria-based sharing rules that grant access to ARR encounters
+by client, <strong>So that</strong> users in a client's group can see
+and edit that client's cases.</p>
+<h3 id="why-2">Why</h3>
+<p>With OWD Private, no one sees any Cases by default. These rules open
+access for each client's group to only that client's ARR encounters.
+This is the core mechanism for client-level data isolation.</p>
+<h3 id="steps-to-implement-2">Steps to Implement</h3>
+<ol type="1">
+<li>Go to <strong>Setup &gt; Sharing Settings</strong></li>
+<li>Scroll down to <strong>Case Sharing Rules</strong></li>
+<li>Click <strong>New</strong> and create the following rules:</li>
+</ol>
+<p><strong>Rule 1: ARR Client NWM Access</strong> | Field | Value |
+|---|---| | Label | ARR Client NWM Access | | Rule Name |
+ARR_Client_NWM_Access | | Rule Type | Based on criteria | | Criteria |
+<code>Line of Business (LOB__c)</code> equals <code>ARR</code>
+<strong>AND</strong> <code>Import Client (Import_Client__c)</code>
+equals <code>NWM</code> | | Share with | Public Group: <strong>ARR -
+Client NWM</strong> | | Access Level | <strong>Read/Write</strong> |</p>
+<p><strong>Rule 2: ARR Client ABC Access</strong> | Field | Value |
+|---|---| | Label | ARR Client ABC Access | | Rule Name |
+ARR_Client_ABC_Access | | Rule Type | Based on criteria | | Criteria |
+<code>Line of Business (LOB__c)</code> equals <code>ARR</code>
+<strong>AND</strong> <code>Import Client (Import_Client__c)</code>
+equals <code>ABC</code> | | Share with | Public Group: <strong>ARR -
+Client ABC</strong> | | Access Level | <strong>Read/Write</strong> |</p>
+<ol start="4" type="1">
+<li><strong>Wait for sharing rule recalculation</strong> to complete
+(this may take time with 4M+ records)</li>
+</ol>
+<h3 id="important-do-not-create-a-blanket-arr-lob-rule">IMPORTANT: Do
+NOT Create a Blanket ARR LOB Rule</h3>
+<p>Unlike ZB (which has LOB-wide Read rules), ARR does
+<strong>NOT</strong> get a blanket LOB-wide rule. If you created a rule
+like "LOB = ARR → ARR All Users", it would let every ARR user see every
+client's cases, defeating client isolation.</p>
+<h3 id="acceptance-criteria-2">Acceptance Criteria</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Two ARR sharing rules created (one
+per client)</label></li>
+<li><label><input type="checkbox" />Each rule uses criteria: LOB = ARR
+AND Import_Client = [client code]</label></li>
+<li><label><input type="checkbox" />Each rule shares with the correct
+client-specific group</label></li>
+<li><label><input type="checkbox" />Access level is Read/Write for both
+rules</label></li>
+<li><label><input type="checkbox" />No blanket ARR LOB-wide rule
+exists</label></li>
+<li><label><input type="checkbox" />Sharing rule recalculation completed
+successfully</label></li>
+</ul>
+<h3 id="testing-steps-2">Testing Steps</h3>
+<ol type="1">
+<li>Navigate to Setup &gt; Sharing Settings &gt; Case Sharing Rules</li>
+<li>Verify both rules appear in the list</li>
+<li>Click into each rule and confirm criteria and target group are
+correct</li>
+<li>Confirm no rule exists that shares ALL ARR cases to a single
+group</li>
+</ol>
+<hr />
+<h2 id="story-4-create-arr-permission-sets">Story 4: Create ARR
+Permission Sets</h2>
+<p><strong>As a</strong> Salesforce Admin, <strong>I want to</strong>
+create permission sets that control what ARR users can do with encounter
+records, <strong>So that</strong> collectors, supervisors, and admins
+have the right field-level access.</p>
+<h3 id="why-3">Why</h3>
+<p>Sharing rules control <strong>which records</strong> you see.
+Permission sets control <strong>what you can do</strong> with those
+records (which fields you can read/edit, whether you can create records,
+etc.).</p>
+<h3 id="steps-to-implement-3">Steps to Implement</h3>
+<p>Create the following permission sets under <strong>Setup &gt;
+Permission Sets &gt; New</strong>:</p>
+<p><strong>Permission Set 1: ARR Collector Base</strong> | Setting |
+Value | |---|---| | Label | ARR Collector Base | | API Name |
+ARR_Collector_Base | | License | Salesforce | | Object: Case | Read,
+Edit (no Create, no Delete) | | Record Type: ARR | Visible | | Field
+Access — Read + Edit | LOB, Import Client, Import Client Identifier,
+Next Work Date, Result Code, Root Cause, Payor | | Field Access — Read
+Only | Status Code Category, Contingency Rate, Encounter Amount, ARR
+Collector, ARR Supervisor |</p>
+<p><strong>Permission Set 2: ARR Supervisor Elevated</strong> | Setting
+| Value | |---|---| | Label | ARR Supervisor Elevated | | API Name |
+ARR_Supervisor_Elevated | | License | Salesforce | | Object: Case |
+Create, Read, Edit (no Delete) | | Record Type: ARR | Visible | | Field
+Access — Read + Edit | All ARR fields including Status Code Category,
+Contingency Rate, Encounter Amount, ARR Collector, ARR Supervisor |</p>
+<p><strong>Permission Set 3: ARR Admin</strong> | Setting | Value |
+|---|---| | Label | ARR Admin | | API Name | ARR_Admin | | License |
+Salesforce | | Object: Case | Create, Read, Edit (no Delete) | | Object:
+Payor__c | Create, Read, Edit (no Delete) | | Record Type: ARR | Visible
+| | Field Access — Read + Edit | All ARR fields |</p>
+<h3 id="acceptance-criteria-3">Acceptance Criteria</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Three permission sets
+created</label></li>
+<li><label><input type="checkbox" />ARR record type visible on
+each</label></li>
+<li><label><input type="checkbox" />Field-level security set correctly
+per the table above</label></li>
+<li><label><input type="checkbox" />Collectors cannot edit
+supervisor-only fields</label></li>
+</ul>
+<h3 id="testing-steps-3">Testing Steps</h3>
+<ol type="1">
+<li>Navigate to Setup &gt; Permission Sets</li>
+<li>Verify all three exist</li>
+<li>Click into ARR Collector Base &gt; Object Settings &gt; Case</li>
+<li>Confirm Read/Edit on Case, no Create</li>
+<li>Confirm field access: Status_Code_Category__c, Contingency_Rate__c,
+Encounter_Amount__c are Read Only</li>
+<li>Click into ARR Supervisor Elevated and verify all fields are Read +
+Edit</li>
+</ol>
+<hr />
+<h2 id="story-5-configure-record-type-picklist-filtering">Story 5:
+Configure Record Type Picklist Filtering</h2>
+<p><strong>As a</strong> Salesforce Admin, <strong>I want to</strong>
+restrict picklist values by record type, <strong>So that</strong> ARR
+users only see Root Cause values applicable to ARR, and ZB users see
+values applicable to ZB.</p>
+<h3 id="why-4">Why</h3>
+<p>Different LOBs have different valid Root Cause values. "Coding Error"
+is a ZB-specific root cause that should not appear on ARR
+encounters.</p>
+<h3 id="steps-to-implement-4">Steps to Implement</h3>
+<ol type="1">
+<li><p>Go to <strong>Setup &gt; Object Manager &gt; Case &gt; Record
+Types</strong></p></li>
+<li><p>Click on the <strong>ARR</strong> record type</p></li>
+<li><p>Click the <strong>Root Cause</strong> picklist</p></li>
+<li><p>Click <strong>Edit</strong></p></li>
+<li><p>Ensure the following values are <strong>available</strong> for
+ARR:</p>
+<ul>
+<li>Billing Error</li>
+<li>Insurance Denial</li>
+<li>Patient Responsibility</li>
+<li>Other</li>
+</ul></li>
+<li><p>Ensure <strong>Coding Error</strong> is <strong>NOT
+available</strong> for ARR (move it to the "Available Values" column,
+not "Selected Values")</p></li>
+<li><p>Click Save</p></li>
+<li><p>Click on the <strong>ZB</strong> record type</p></li>
+<li><p>Click the <strong>Root Cause</strong> picklist</p></li>
+<li><p>Verify <strong>all values</strong> are available for ZB
+(including Coding Error)</p></li>
+</ol>
+<h3 id="acceptance-criteria-4">Acceptance Criteria</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />ARR record type: Root Cause does NOT
+include "Coding Error"</label></li>
+<li><label><input type="checkbox" />ZB record type: Root Cause includes
+all values including "Coding Error"</label></li>
+<li><label><input type="checkbox" />Status Code Category values
+available on both record types</label></li>
+</ul>
+<h3 id="testing-steps-4">Testing Steps</h3>
+<ol type="1">
+<li>Log in as an ARR user (or use the ARR record type)</li>
+<li>Create or edit a Case with the ARR record type</li>
+<li>Click the Root Cause dropdown</li>
+<li>Verify "Coding Error" does NOT appear</li>
+<li>Switch to ZB record type and verify "Coding Error" DOES appear</li>
+</ol>
+<hr />
+<h2 id="story-6-assign-users-to-groups-and-permission-sets">Story 6:
+Assign Users to Groups and Permission Sets</h2>
+<p><strong>As a</strong> Salesforce Admin, <strong>I want to</strong>
+assign users to the correct Public Groups and Permission Sets,
+<strong>So that</strong> each user sees the right encounters and has the
+right level of access.</p>
+<h3 id="why-5">Why</h3>
+<p>This is where the sharing model comes to life. Group membership
+determines what a user can see. Permission set assignment determines
+what they can do.</p>
+<h3 id="steps-to-implement-5">Steps to Implement</h3>
+<p><strong>For each ARR Collector:</strong></p>
+<ol type="1">
+<li>Go to <strong>Setup &gt; Public Groups &gt; ARR - Client
+[CODE]</strong> (e.g., ARR - Client NWM)</li>
+<li>Click <strong>Edit</strong></li>
+<li>Add the user under <strong>Group Members</strong> (search for their
+name, select "Users" type)</li>
+<li>Also add them to <strong>ARR - All Users</strong> (for list view
+visibility)</li>
+<li>Go to the user's record &gt; <strong>Permission Set
+Assignments</strong></li>
+<li>Assign <strong>ARR Collector Base</strong></li>
+</ol>
+<p><strong>For each ARR Supervisor:</strong></p>
+<ol type="1">
+<li>Add to <strong>ARR - Client [CODE]</strong> for each client they
+manage</li>
+<li>Add to <strong>ARR - Supervisors</strong> (for queue
+visibility)</li>
+<li>Add to <strong>ARR - All Users</strong></li>
+<li>Assign <strong>ARR Supervisor Elevated</strong> permission set</li>
+</ol>
+<p><strong>For ZB users:</strong> No action needed — ZB groups are
+role-based and membership is automatic. Users in Reimbursement Auditor
+I–IV and Client Success Manager roles automatically get ZB Read Only
+access. Users in Payor Collections Specialist I–IV and Claims Analyst
+roles automatically get ZB Read/Write access.</p>
+<p><strong>For Dual-LOB users (work both ARR and ZB):</strong></p>
+<ol type="1">
+<li>Add to the appropriate <strong>ARR - Client [CODE]</strong>
+group(s)</li>
+<li>Add to <strong>ARR - All Users</strong></li>
+<li>Assign <strong>ARR Collector Base</strong> (or ARR Supervisor
+Elevated if they supervise ARR)</li>
+<li>ZB access is automatic via their role — no additional ZB group
+assignment needed</li>
+</ol>
+<h3 id="quick-reference-what-goes-where">Quick Reference: What Goes
+Where</h3>
+<table>
+<thead>
+<tr>
+<th>User Type</th>
+<th>Public Groups</th>
+<th>Permission Set</th>
+<th>ZB Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR Collector (single client)</td>
+<td>ARR_Client_[CODE], ARR_All_Users</td>
+<td>ARR Collector Base</td>
+<td>Automatic via role</td>
+</tr>
+<tr>
+<td>ARR Collector (multi-client)</td>
+<td>ARR_Client_[CODE1], ARR_Client_[CODE2], ARR_All_Users</td>
+<td>ARR Collector Base</td>
+<td>Automatic via role</td>
+</tr>
+<tr>
+<td>ARR Supervisor</td>
+<td>ARR_Client_[CODE(s)], ARR_Supervisors, ARR_All_Users</td>
+<td>ARR Supervisor Elevated</td>
+<td>Automatic via role hierarchy</td>
+</tr>
+<tr>
+<td>ZB-only user</td>
+<td>(none needed)</td>
+<td>ZB Collector Base</td>
+<td>Automatic via role</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td>ARR_Client_[all], ARR_Supervisors, ARR_All_Users</td>
+<td>ARR Admin</td>
+<td>Automatic via role hierarchy</td>
+</tr>
+</tbody>
+</table>
+<h3 id="acceptance-criteria-5">Acceptance Criteria</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Each ARR user is in the correct
+client group(s)</label></li>
+<li><label><input type="checkbox" />Each ARR user is in ARR - All
+Users</label></li>
+<li><label><input type="checkbox" />Supervisors are in ARR -
+Supervisors</label></li>
+<li><label><input type="checkbox" />Permission sets assigned to all ARR
+users</label></li>
+<li><label><input type="checkbox" />No ZB-only users are in any ARR
+groups</label></li>
+</ul>
+<h3 id="testing-steps-5">Testing Steps</h3>
+<ol type="1">
+<li>Navigate to Setup &gt; Public Groups &gt; ARR - Client NWM</li>
+<li>Click "View All Users" and verify the expected users appear</li>
+<li>Navigate to a user's detail page and verify their permission set
+assignments</li>
+<li>Repeat for each client group</li>
+</ol>
+<hr />
+<h2 id="story-7-create-arr-list-views-scoped-by-lob">Story 7: Create ARR
+List Views (Scoped by LOB)</h2>
+<p><strong>As a</strong> Salesforce Admin, <strong>I want to</strong>
+create ARR-specific list views shared only with ARR users, <strong>So
+that</strong> ZB users don't see ARR list views in their dropdown, and
+ARR users have relevant views.</p>
+<h3 id="why-6">Why</h3>
+<p>List views should be scoped by LOB. ZB users shouldn't see ARR views
+cluttering their UI, and vice versa.</p>
+<h3 id="steps-to-implement-6">Steps to Implement</h3>
+<ol type="1">
+<li>Go to the <strong>Cases</strong> tab</li>
+<li>Create the following list views:</li>
+</ol>
+<p><strong>List View 1: ARR - My Encounters</strong> | Setting | Value |
+|---|---| | Name | ARR - My Encounters | | Filter | LOB equals ARR
+<strong>AND</strong> Case Owner equals current user | | Shared with |
+Public Group: ARR - All Users | | Columns | Case Number, Subject, Import
+Client, Status, Encounter Amount, Next Work Date |</p>
+<p><strong>List View 2: ARR - Unassigned Queue</strong> | Setting |
+Value | |---|---| | Name | ARR - Unassigned Queue | | Filter | LOB
+equals ARR <strong>AND</strong> Case Owner equals Queue: ARR -
+Unassigned | | Shared with | Public Group: ARR - Supervisors | | Columns
+| Case Number, Subject, Import Client, Encounter Amount, Created Date
+|</p>
+<p><strong>List View 3: ARR - Collections Queue</strong> | Setting |
+Value | |---|---| | Name | ARR - Collections Queue | | Filter | LOB
+equals ARR <strong>AND</strong> Case Owner equals Queue: ARR -
+Collections | | Shared with | Public Group: ARR - Supervisors | |
+Columns | Case Number, Subject, Import Client, Encounter Amount, Status
+|</p>
+<ol start="3" type="1">
+<li>For each list view, use the <strong>Sharing Settings</strong> option
+to share with the specified group only (not "All Users")</li>
+</ol>
+<h3 id="acceptance-criteria-6">Acceptance Criteria</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Three ARR list views
+created</label></li>
+<li><label><input type="checkbox" />Each is shared with the correct ARR
+group (not visible to all users)</label></li>
+<li><label><input type="checkbox" />ZB users do NOT see ARR list views
+in their Case list view dropdown</label></li>
+</ul>
+<h3 id="testing-steps-6">Testing Steps</h3>
+<ol type="1">
+<li>Log in as an ARR user</li>
+<li>Navigate to Cases tab</li>
+<li>Verify ARR list views appear in the dropdown</li>
+<li>Log in as a ZB-only user</li>
+<li>Navigate to Cases tab</li>
+<li>Verify ARR list views do NOT appear</li>
+</ol>
+<hr />
+<h2 id="story-8-configure-payor-validation-rule">Story 8: Configure
+Payor Validation Rule</h2>
+<p><strong>As a</strong> Salesforce Admin, <strong>I want to</strong>
+ensure that when a user selects a Payor on an Encounter, the Payor
+matches the Encounter's Client and LOB, <strong>So that</strong> users
+can't accidentally associate the wrong payor with an encounter.</p>
+<h3 id="why-7">Why</h3>
+<p>Each Payor is associated with a Client and LOB. If a user is working
+a Northwestern Memorial ARR encounter, they should only be able to
+select Payors that belong to Northwestern Memorial and the ARR line of
+business.</p>
+<h3 id="steps-to-implement-7">Steps to Implement</h3>
+<ol type="1">
+<li><p>Verify the <strong>Payor__c</strong> custom object has these
+fields:</p>
+<ul>
+<li><code>Name__c</code> (Payor name)</li>
+<li><code>Payor_Code__c</code> (Code)</li>
+<li><code>LOB__c</code> (Picklist: ARR | ZB | Both)</li>
+<li><code>Client__c</code> (Text — matches Case.Import_Client__c)</li>
+</ul></li>
+<li><p>Go to <strong>Setup &gt; Object Manager &gt; Case &gt; Validation
+Rules</strong></p></li>
+<li><p>Create (or verify existing) validation rule:</p></li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rule Name</td>
+<td>Payor_Must_Match_Client_And_LOB</td>
+</tr>
+<tr>
+<td>Active</td>
+<td>True</td>
+</tr>
+<tr>
+<td>Error Condition</td>
+<td>Payor is selected AND (Payor's Client does not match Case's Import
+Client OR Payor's LOB does not match Case's LOB and Payor's LOB is not
+"Both")</td>
+</tr>
+<tr>
+<td>Error Message</td>
+<td>"Selected Payor does not match this Encounter's Client and Line of
+Business. Please select a Payor that matches."</td>
+</tr>
+<tr>
+<td>Error Location</td>
+<td>Payor field</td>
+</tr>
+</tbody>
+</table>
+<h3 id="note-on-lookup-filters">Note on Lookup Filters</h3>
+<p>A lookup filter would provide a better UX (filtering the Payor picker
+in real-time), but lookup filters cannot reference text fields. Since
+both <code>Import_Client__c</code> (Case) and <code>Client__c</code>
+(Payor) are text fields, a lookup filter is not feasible. The validation
+rule provides equivalent server-side enforcement.</p>
+<h3 id="acceptance-criteria-7">Acceptance Criteria</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" />Validation rule is
+active</label></li>
+<li><label><input type="checkbox" />Saving a Case with a mismatched
+Payor is blocked</label></li>
+<li><label><input type="checkbox" />Saving a Case with a Payor where LOB
+= "Both" is allowed on either LOB</label></li>
+</ul>
+<h3 id="testing-steps-7">Testing Steps</h3>
+<ol type="1">
+<li>Open an ARR NWM encounter</li>
+<li>Try to select a Payor that belongs to ABC → should fail
+validation</li>
+<li>Try to select a Payor that belongs to NWM with LOB = ARR → should
+save</li>
+<li>Try to select a Payor with LOB = "Both" and Client = NWM → should
+save</li>
+<li>Open a ZB encounter and try to select an ARR-only Payor → should
+fail</li>
+</ol>
+<hr />
+<h2 id="story-9-end-to-end-visibility-validation">Story 9: End-to-End
+Visibility Validation</h2>
+<p><strong>As a</strong> QA tester, <strong>I want to</strong> validate
+the entire sharing model end-to-end, <strong>So that</strong> we can
+confirm every user type sees exactly what they should — no more, no
+less.</p>
+<h3 id="why-8">Why</h3>
+<p>This is the final validation before go-live. Every access path must
+be verified.</p>
+<h3 id="test-matrix">Test Matrix</h3>
+<p>For each user below, log in (or use Setup &gt; Login As) and run the
+following SOQL in Developer Console:</p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode sql"><code class="sourceCode sql"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>() <span class="kw">FROM</span> <span class="cf">Case</span> <span class="kw">WHERE</span> LOB__c <span class="op">=</span> <span class="st">&#39;ARR&#39;</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>() <span class="kw">FROM</span> <span class="cf">Case</span> <span class="kw">WHERE</span> LOB__c <span class="op">=</span> <span class="st">&#39;ZB&#39;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>() <span class="kw">FROM</span> <span class="cf">Case</span> <span class="kw">WHERE</span> Import_Client__c <span class="op">=</span> <span class="st">&#39;NWM&#39;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">SELECT</span> <span class="fu">COUNT</span>() <span class="kw">FROM</span> <span class="cf">Case</span> <span class="kw">WHERE</span> Import_Client__c <span class="op">=</span> <span class="st">&#39;ABC&#39;</span></span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>User</th>
+<th>Role</th>
+<th>Expected ARR</th>
+<th>Expected ZB</th>
+<th>Expected NWM</th>
+<th>Expected ABC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ARR Collector (NWM only)</td>
+<td>Payor Collections Specialist</td>
+<td>NWM count only</td>
+<td>&gt; 0 (R/W via role)</td>
+<td>&gt; 0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>ARR Collector (ABC only)</td>
+<td>Payor Collections Specialist</td>
+<td>ABC count only</td>
+<td>&gt; 0 (R/W via role)</td>
+<td>0</td>
+<td>&gt; 0</td>
+</tr>
+<tr>
+<td>ARR Collector (NWM + ABC)</td>
+<td>Payor Collections Specialist</td>
+<td>NWM + ABC</td>
+<td>&gt; 0 (R/W via role)</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+</tr>
+<tr>
+<td>ARR Supervisor (NWM only)</td>
+<td>Supervisor</td>
+<td>NWM count only</td>
+<td>&gt; 0 (inherited)</td>
+<td>&gt; 0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>ARR Supervisor (all clients)</td>
+<td>Supervisor</td>
+<td>All ARR</td>
+<td>&gt; 0 (inherited)</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+</tr>
+<tr>
+<td>ZB Auditor</td>
+<td>Reimbursement Auditor</td>
+<td>0</td>
+<td>&gt; 0 (Read Only)</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>ZB Worker</td>
+<td>Claims Analyst / Payor Coll Spec</td>
+<td>0</td>
+<td>&gt; 0 (Read/Write)</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Dual-LOB (ARR NWM + ZB)</td>
+<td>Any worker role</td>
+<td>NWM count only</td>
+<td>&gt; 0 (via role)</td>
+<td>&gt; 0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Program Administrator</td>
+<td>Program Administrator</td>
+<td>All (if in all groups)</td>
+<td>&gt; 0 (inherited)</td>
+<td>&gt; 0</td>
+<td>&gt; 0</td>
+</tr>
+</tbody>
+</table>
+<h3 id="critical-checks">Critical Checks</h3>
+<ul class="task-list">
+<li><label><input type="checkbox" /><strong>Client Isolation:</strong>
+An ARR collector in NWM group sees 0 ABC cases</label></li>
+<li><label><input type="checkbox" /><strong>LOB Isolation:</strong> A
+ZB-only user sees 0 ARR cases</label></li>
+<li><label><input type="checkbox" /><strong>No Blanket ARR
+Access:</strong> Verify no sharing rule grants ARR Read to a
+non-client-specific group</label></li>
+<li><label><input type="checkbox" /><strong>Queue Isolation:</strong>
+ARR collectors cannot see queue-owned (unassigned)
+encounters</label></li>
+<li><label><input type="checkbox" /><strong>Supervisor Queue
+Access:</strong> ARR supervisors CAN see queue-owned
+encounters</label></li>
+<li><label><input type="checkbox" /><strong>ZB Two-Tier:</strong>
+Reimbursement Auditors get Read Only on ZB; Payor Collections
+Specialists get Read/Write</label></li>
+<li><label><input type="checkbox" /><strong>ZB Hierarchy
+Inheritance:</strong> Supervisors and Program Administrators inherit ZB
+access without being explicitly added to ZB groups</label></li>
+<li><label><input type="checkbox" /><strong>Dual-LOB:</strong> A user in
+both an ARR client group and a ZB role-based group sees both LOBs
+correctly</label></li>
+<li><label><input type="checkbox" /><strong>Record Type
+Filtering:</strong> ARR record type does NOT show "Coding Error" in Root
+Cause picklist</label></li>
+<li><label><input type="checkbox" /><strong>Payor Validation:</strong>
+Saving a Case with a mismatched Payor is blocked</label></li>
+</ul>
+<hr />
+<h2 id="adding-a-new-arr-client-ongoing-process">Adding a New ARR Client
+(Ongoing Process)</h2>
+<p>When Titan Health onboards a new ARR client, the admin workflow
+is:</p>
+<ol type="1">
+<li><p><strong>Create Public Group:</strong> Setup &gt; Public Groups
+&gt; New</p>
+<ul>
+<li>Label: <code>ARR - Client [CODE]</code></li>
+<li>Group Name: <code>ARR_Client_[CODE]</code></li>
+<li>Grant Access Using Hierarchies: Checked</li>
+<li>Members: Users assigned to that client</li>
+</ul></li>
+<li><p><strong>Create Sharing Rule:</strong> Setup &gt; Sharing Settings
+&gt; Case &gt; New Rule</p>
+<ul>
+<li>Criteria: <code>LOB = ARR AND Import Client = [CODE]</code></li>
+<li>Share with: <code>ARR - Client [CODE]</code></li>
+<li>Access Level: Read/Write</li>
+</ul></li>
+<li><p><strong>Add Users:</strong> Add assigned collectors and
+supervisors to the new group</p></li>
+</ol>
+<p>That's it — no code, no deployment, no record-level changes. Access
+takes effect after sharing rule recalculation completes.</p>
+<h3 id="scalability-note">Scalability Note</h3>
+<p>Salesforce limits criteria-based sharing rules to <strong>50 per
+object</strong>. Each ARR client requires one rule. At the current pace,
+this supports ~45 clients (accounting for ZB rules). If Titan Health
+expects to exceed that limit, an Apex Managed Sharing solution has been
+built and tested — contact Relkor for activation.</p>
+<hr />
+<p><strong>Questions?</strong> Reach out to Bryant Daniels at Relkor
+Cloud Solutions LLC.</p>
+  </article>
+
+  <footer class="page-footer">
+    <p>Maintained by <a href="https://relkorcs.com" target="_blank" rel="noopener">Relkor Cloud Solutions</a>.</p>
+  </footer>
+
+</div>
+</body>
+</html>
