@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's New — Titan Health Release 3</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .hero {
+    background: linear-gradient(135deg, var(--bg-card), var(--bg-elev));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 36px 28px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 30px;
+    color: var(--accent-bright);
+    margin: 0 0 8px;
+  }
+  .hero .subtitle {
+    color: var(--text-muted);
+    font-size: 16px;
+    margin: 0;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 24px 0 36px;
+  }
+  .stat {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    text-align: center;
+  }
+  .stat .num {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--accent-bright);
+    line-height: 1;
+  }
+  .stat .lbl {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .role-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 26px;
+    margin-bottom: 18px;
+  }
+  .role-card h3 {
+    margin: 0 0 14px;
+    color: var(--accent-bright);
+    font-size: 19px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .role-card h3 .emoji { font-size: 24px; }
+  .role-card .lede {
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+  .changes-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .changes-list li {
+    padding: 10px 0 10px 28px;
+    position: relative;
+    color: var(--text);
+    font-size: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .changes-list li:last-child { border-bottom: none; }
+  .changes-list li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    color: var(--green);
+    font-weight: 700;
+  }
+  .changes-list li.note::before {
+    content: "ℹ";
+    color: var(--accent);
+  }
+  .changes-list li strong { color: var(--accent-bright); }
+  .timeline {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 26px;
+    margin: 28px 0;
+  }
+  .timeline h3 { margin: 0 0 16px; color: var(--accent-bright); font-size: 19px; }
+  .timeline-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 20px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 14px;
+  }
+  .timeline-row:last-child { border-bottom: none; }
+  .timeline-row .when {
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .callout {
+    background: var(--bg-elev);
+    border-left: 3px solid var(--accent);
+    padding: 14px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 20px 0;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .callout strong { color: var(--accent-bright); }
+  .next-steps {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 26px;
+    margin: 28px 0;
+  }
+  .next-steps h3 { color: var(--accent-bright); margin: 0 0 14px; font-size: 19px; }
+  .next-steps a {
+    display: inline-block;
+    margin-right: 12px;
+    margin-top: 8px;
+    color: var(--accent-bright);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .next-steps a:hover { background: var(--bg-elev); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="./">← Titan Health</a>
+  </nav>
+
+  <div class="hero">
+    <h1>🎉 What's New in Release 3</h1>
+    <p class="subtitle">A plain-English guide to what changes for the people who use the system every day</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat">
+      <div class="num">10</div>
+      <div class="lbl">Stories shipped</div>
+    </div>
+    <div class="stat">
+      <div class="num">2</div>
+      <div class="lbl">Lines of business in one org</div>
+    </div>
+    <div class="stat">
+      <div class="num">June 1</div>
+      <div class="lbl">Target go-live</div>
+    </div>
+    <div class="stat">
+      <div class="num">100%</div>
+      <div class="lbl">In UAT, ready to test</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>The headline change:</strong> Release 3 introduces <strong>Accounts Receivable Recovery (ARR)</strong> as a new line of business in the same Salesforce org as Zero Balance (ZB). ARR teams work client-isolated encounters (Christus Health, Northwestern Medicine), with their own queues, list views, status codes, and routing — all without disturbing the existing ZB workflow.
+  </div>
+
+  <h2 class="section-heading">Changes by who you are <span class="count">5</span></h2>
+
+  <!-- ARR Collector / Auditor -->
+  <div class="role-card">
+    <h3><span class="emoji">📋</span> If you're an ARR Collector or Auditor</h3>
+    <p class="lede">A new workspace for Accounts Receivable Recovery encounters — client-aware, with cleaner data and built-in guardrails.</p>
+    <ul class="changes-list">
+      <li><strong>You'll only see your client's encounters.</strong> Christus team sees Christus encounters; Northwestern team sees Northwestern. No cross-client noise.</li>
+      <li><strong>New status codes:</strong> "ARR - Offshore Adjustment Review", "ARR - Sent to Coding". Each one routes the encounter to the right queue automatically when you save.</li>
+      <li><strong>New ARR-specific Adjustment Reasons:</strong> "Denial - Max Units Exceeded (MUE)", "Denial - Bundling", "Contractual Adjustment - Contractual Variance".</li>
+      <li><strong>New imported-data fields visible on each encounter:</strong> Placement Date, Client Epic Work Queue, Imported Payor names + balances for Primary, Secondary, and Tertiary payors.</li>
+      <li><strong>Encounter Payor records now show net balance and financial class</strong> automatically — no manual math required.</li>
+      <li><strong>Cleaner Root Cause picklist:</strong> only Root Causes that apply to ARR are selectable on ARR encounters. ZB-only Root Causes won't accidentally show up.</li>
+      <li class="note">The old <code>xD - *</code> proof-of-concept fields have been retired. The replacement fields (Imported Payor balances) provide the same info more cleanly.</li>
+    </ul>
+  </div>
+
+  <!-- ZB Auditor -->
+  <div class="role-card">
+    <h3><span class="emoji">🔍</span> If you're a ZB Auditor</h3>
+    <p class="lede">Your day-to-day is largely unchanged — Release 3 was about adding ARR alongside, not modifying ZB.</p>
+    <ul class="changes-list">
+      <li><strong>Your encounters, queues, and list views look the same.</strong> Sharing rules, permissions, and status codes for ZB are unchanged.</li>
+      <li><strong>One small enhancement:</strong> the encounter highlights at the top of every record now show the Titan Net Balance.</li>
+      <li><strong>Smarter Payor lookup:</strong> when adding an Encounter Payor, only Payor accounts appear in the picker — no more accidentally picking a hospital client.</li>
+      <li class="note">If you also work some ARR encounters, you'll see ARR-specific options on those records (status codes, root causes, adjustment reasons). They won't show on ZB encounters.</li>
+    </ul>
+  </div>
+
+  <!-- Supervisor -->
+  <div class="role-card">
+    <h3><span class="emoji">👥</span> If you're a Supervisor (ARR or ZB)</h3>
+    <p class="lede">A few new tools for triage and routing, plus stronger guardrails on data integrity.</p>
+    <ul class="changes-list">
+      <li><strong>New queue: "ARR - Offshore Adjustment Review"</strong> — supervisors at NWM are members. Encounters with that status auto-route here for review.</li>
+      <li><strong>Triage flow for new ARR encounters:</strong> "Newly Unassigned" encounters are visible only to client supervisors until you assign them out, so they don't get worked accidentally before triage.</li>
+      <li><strong>Contingency rate caps</strong> are now enforced automatically on ARR Payment activities for clients with split commission. The system will adjust the rate to land at the cap, then zero out further payments — no manual cap-tracking required.</li>
+      <li><strong>"Log Follow Up Note" button</strong> is now hidden on encounters that have no Encounter Payors — fewer half-completed notes.</li>
+      <li class="note">If you're a hybrid supervisor (cover both ARR and ZB), you keep access to both — no special configuration needed.</li>
+    </ul>
+  </div>
+
+  <!-- Salesforce Admin -->
+  <div class="role-card">
+    <h3><span class="emoji">⚙️</span> If you're a Salesforce Admin (Al / Naomi)</h3>
+    <p class="lede">Substantial new metadata, but designed to layer cleanly on top of the existing org.</p>
+    <ul class="changes-list">
+      <li><strong>4 new public groups</strong> for ARR client routing (Christus + NWM teams + supervisors).</li>
+      <li><strong>2 new sharing rules</strong> on Case (criteria-based, keyed on Record Type + Client + Status).</li>
+      <li><strong>3 new queues</strong> (ARR_Newly_Unassigned, ARR_Collections, ARR_Offshore_Adjustment_Review).</li>
+      <li><strong>4 new permission sets + 3 new permission set groups</strong> for ARR roles. Add a user to an ARR Permission Set Group and they're set up.</li>
+      <li><strong>~25 new custom fields on Case</strong> (Imported Payor data, ARR-specific commission fields, etc.) and several new Encounter Payor formula fields.</li>
+      <li><strong>New Validation Rules</strong> enforce that ARR-only picklist values don't land on ZB encounters (and vice versa for Root Causes).</li>
+      <li><strong>One Lightning page rebuild:</strong> ARR encounters use a dedicated Lightning Record Page (Titan_Health_ARR_Encounter_Record_Page) with sections tuned for ARR workflows.</li>
+      <li class="note">All 25 ARR Encounter Guidance records are loaded — they drive automatic Next Owner routing when status codes change.</li>
+    </ul>
+  </div>
+
+  <!-- Integration partner -->
+  <div class="role-card">
+    <h3><span class="emoji">🔗</span> If you're working on Integrations (Tim / Kicksaw)</h3>
+    <p class="lede">Two new automation hooks, plus the archival pipeline ready for activation.</p>
+    <ul class="changes-list">
+      <li><strong>Historic Encounter Archival pipeline (TH-345)</strong> is fully deployed: a REST endpoint exposes flagged encounters for Athena ingestion, then encounters are hard-deleted after a 7-day safety window.</li>
+      <li><strong>Schedulables are deployed but inactive</strong> — turning them on in production is an explicit cutover step (decide cadence first).</li>
+      <li><strong>Daily encounter staging continues to run</strong> at 14:50 UTC — it processes whatever has the "Imported - Pending Staging" status and resolves the Account from Facility Prefix.</li>
+      <li class="note">Audit log lives on every <code>Archive_Run__c</code> record — what was attempted, what succeeded, what failed.</li>
+    </ul>
+  </div>
+
+  <h2 class="section-heading">When does this go live? <span class="count">📅</span></h2>
+
+  <div class="timeline">
+    <h3>The path from now to go-live</h3>
+    <div class="timeline-row">
+      <div class="when">Now → May 24</div>
+      <div>Builds finalized in UAT. Documentation + handoff package being polished. Some additional admin work continuing in parallel.</div>
+    </div>
+    <div class="timeline-row">
+      <div class="when">May 25 – 29</div>
+      <div><strong>UAT testing window.</strong> Jon leads testing across all 10 stories using the interactive UAT runbook. Bugs flagged during this week get triaged for inclusion / deferral.</div>
+    </div>
+    <div class="timeline-row">
+      <div class="when">June 1</div>
+      <div><strong>Target production go-live.</strong> Includes a 2–4 hour maintenance window for sharing-rule recalculation across 4.2M Cases. ZB users see no change; ARR users go live on their new client-isolated workspace.</div>
+    </div>
+    <div class="timeline-row">
+      <div class="when">June 1 – 4</div>
+      <div>Hypercare period — close support availability, quick fixes for any cutover issues.</div>
+    </div>
+    <div class="timeline-row">
+      <div class="when">June 4</div>
+      <div>Project rolloff. Naomi is the primary admin going forward, supported by the handoff package.</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Want to test now?</strong> The interactive UAT runbook walks you step-by-step through the 30 acceptance tests for the Sprint 2 + Feedback work. Pass/fail state saves in your browser as you go.
+  </div>
+
+  <div class="next-steps">
+    <h3>Want more detail?</h3>
+    <p style="color:var(--text-muted); font-size:14px; margin-bottom:12px;">All of these are linked from the main <a href="./">Titan Health hub</a>:</p>
+    <a href="handoff.html">📘 Complete Project Handoff</a>
+    <a href="sharing-model.html">🔐 Sharing Model Design</a>
+    <a href="th-345-uat-runbook.html">🧪 TH-345 UAT Runbook</a>
+    <a href="change-log.html">📜 Change Log</a>
+  </div>
+
+  <footer class="page-footer">
+    <p>Titan Health — Salesforce Release 3 documentation. Last updated 2026-05-04.</p>
+  </footer>
+
+</div>
+</body>
+</html>
