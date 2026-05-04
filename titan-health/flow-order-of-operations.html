@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flow Order of Operations — Titan Health</title>
+<link rel="stylesheet" href="../_shared/styles.css">
+<style>
+  .doc-body {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+  .doc-body h1 {
+    font-size: 32px;
+    margin: 0 0 4px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 12px;
+  }
+  .doc-body h2 {
+    font-size: 24px;
+    margin: 40px 0 16px;
+    color: var(--accent-bright);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 6px;
+  }
+  .doc-body h3 {
+    font-size: 19px;
+    margin: 28px 0 10px;
+    color: var(--text);
+  }
+  .doc-body h4 {
+    font-size: 16px;
+    margin: 20px 0 8px;
+    color: var(--text-muted);
+  }
+  .doc-body p { color: var(--text); }
+  .doc-body ul, .doc-body ol { padding-left: 22px; }
+  .doc-body li { margin: 4px 0; color: var(--text); }
+  .doc-body code {
+    background: var(--code-bg);
+    color: var(--accent-bright);
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+  }
+  .doc-body pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .doc-body pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .doc-body table {
+    border-collapse: collapse;
+    margin: 18px 0;
+    width: 100%;
+    font-size: 14px;
+  }
+  .doc-body table th,
+  .doc-body table td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  .doc-body table th {
+    background: var(--bg-elev);
+    color: var(--accent-bright);
+    font-weight: 600;
+  }
+  .doc-body table tr:nth-child(even) td { background: var(--bg-elev); }
+  .doc-body blockquote {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-elev);
+    padding: 12px 18px;
+    margin: 18px 0;
+    border-radius: 0 6px 6px 0;
+    color: var(--text-muted);
+  }
+  .doc-body blockquote p { margin: 6px 0; }
+  .doc-body hr {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 32px 0;
+  }
+  .doc-body a { color: var(--accent-bright); }
+  .doc-body a:hover { color: var(--accent); text-decoration: underline; }
+  .doc-meta {
+    color: var(--text-dim);
+    font-size: 13px;
+    margin: 4px 0 24px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <nav class="nav">
+    <a href="./">← Titan Health</a>
+  </nav>
+
+  <article class="doc-body">
+<h1 id="titan-health--flow-order-of-operations">Titan Health — Flow
+Order of Operations</h1>
+<p><strong>Last updated:</strong> 2026-05-04 <strong>Scope:</strong> All
+59 active flows in UAT (<code>titan-full</code>), the batch jobs that
+drive them, and how they fit into Salesforce's save order.</p>
+<hr />
+<h2 id="1-salesforce-save-order--the-framing">1. Salesforce save order —
+the framing</h2>
+<p>When a record is saved (Insert / Update / Upsert), Salesforce runs
+automation in a specific order. Where Titan Health's flows fit:</p>
+<pre><code>1.  Loads original record + new field values
+2.  Executes system validation (required fields, FK, etc.)
+3.  ▶ Executes Before-Save Flows         ← Many of our flows
+4.  Executes Apex before triggers           (we have 3 — none on Case)
+5.  Re-runs system validation
+6.  Executes Validation Rules               ← Sprint 2 + feedback VRs run here
+7.  Saves the record (no commit yet)
+8.  Executes Apex after triggers
+9.  ▶ Executes After-Save Flows          ← Our 3 Case after-save flows
+10. Assignment / auto-response rules
+11. Workflow rules
+12. Processes (Process Builder)
+13. Flows launched by processes
+14. Escalation / entitlement rules
+15. Updates Roll-up Summary fields
+16. Sharing recalculation
+17. Commits to database
+18. Post-commit (workflow time triggers, async jobs, batch process jobs)</code></pre>
+<p><strong>Key call-outs for Titan Health:</strong></p>
+<ul>
+<li>All Case automation runs via Flows. There are <strong>no active Apex
+triggers on Case</strong> today.</li>
+<li>The 3 active Apex triggers are on system / packaged objects
+(<code>BatchApexErrorEvent</code>,
+<code>shield_ext__Compliance_Categorization__c</code>,
+<code>KicksawEng__KicksawIntegrationLog__e</code>) — not relevant to
+Case save flow.</li>
+<li>When multiple before-save (or after-save) flows are configured for
+the same object + event, <strong>Salesforce officially says the order is
+"unspecified."</strong> In practice they tend to run alphabetically by
+API name, but <strong>don't rely on that for correctness</strong> —
+design each flow to be independent.</li>
+</ul>
+<hr />
+<h2 id="2-per-record-save-order--what-runs-on-each-event">2. Per-record
+save order — what runs on each event</h2>
+<h3 id="21-case-encounter">2.1 Case (Encounter)</h3>
+<p><strong>Insert:</strong> | Phase | Flow | Notes | |---|---|---| |
+Before-Save |
+<code>Case_Before_Save_Encounters_Manually_Created_by_Titan_Users</code>
+| Stamps fields when a Titan user manually creates an Encounter. | |
+Validation Rules | <code>Restrict_ARR_Only_Codes_To_ARR_RT</code>
+(TH-584/585), <code>Restrict_Primary_Root_Cause_To_LOB</code> (TH-479),
+plus pre-existing rules | Block save if ARR-only values land on ZB Cases
+(and vice versa for Root Cause). | | After-Save | (none on Insert) |
+|</p>
+<p><strong>Update:</strong> | Phase | Flow | Notes | |---|---|---| |
+Before-Save |
+<code>Case_Before_Save_Approval_Process_Rejection_Actions</code> |
+Stamps fields when an approval is rejected. | | Validation Rules | Same
+as above | | | After-Save |
+<code>Case_After_Save_Auditor_Conclusion_Updates</code> | Updates
+derived fields when Auditor Conclusion changes. | | After-Save |
+<code>Case_After_Save_Record_Owner_Updates</code> | Side-effects of
+Owner change. | | After-Save |
+<code>Case_After_Save_Update_Case_Fields</code> | General Case field
+maintenance. |</p>
+<blockquote>
+<p>⚠️ Three after-save flows fire on Update. Each is independently
+designed; Salesforce gives no order guarantee between them.</p>
+</blockquote>
+<h3 id="22-encounter_payor__c">2.2 Encounter_Payor__c</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Flow</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auto-Launched</td>
+<td><code>Encounter_Payor_Delete_Financial_Activity_Validation</code></td>
+<td>Invoked when a child FA is being deleted; raises validation.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="23-financial_activity__c">2.3 Financial_Activity__c</h3>
+<p><strong>Insert:</strong> | Phase | Flow | Notes | |---|---|---| |
+Before-Save |
+<code>Financial_Activity_Before_Save_Set_Contingency_Rate</code> |
+Stamps <code>Contingency_Rate__c</code> based on the parent Encounter's
+Record Type and the Account's contingency config. <strong>TH-507
+extension:</strong> also enforces ARR Cap (only when Split Commission
+enabled + Type=Payment). | | Validation Rules |
+<code>Restrict_ARR_Codes_To_ARR_Encounter</code> (TH-585) | Blocks
+ARR-only Adjustment Codes when parent Encounter is not ARR. |</p>
+<p><strong>Auto-Launched (delete-time):</strong></p>
+<ul>
+<li><code>Financial_Activity_Delete_Invoiced_Validation</code> —
+prevents deletion of invoiced FAs.</li>
+</ul>
+<h3 id="24-encounter_guidance__c">2.4 Encounter_Guidance__c</h3>
+<p><strong>Insert + Update:</strong> | Phase | Flow | Notes |
+|---|---|---| | Before-Save |
+<code>Encounter_Guidance_Before_Save_Set_Unique_Id</code> | Stamps
+<code>Encounter_Guidance_Unique_Id__c</code> (a deterministic key). | |
+Validation Rules | <code>Restrict_ARR_Only_Codes_To_ARR_RT</code>
+(TH-584/585) | Blocks ARR-only Status Codes / Adjustment Codes on ZB EG
+records. |</p>
+<h3 id="25-user">2.5 User</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Flow</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Before-Save (Update)</td>
+<td><code>User_Before_Save_Set_Previous_Role</code></td>
+<td>Captures the previous Role when a user's role changes.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-scheduled-flows--the-dailyweekly-drivers">3. Scheduled flows —
+the daily/weekly drivers</h2>
+<p>Five active scheduled flows; each one's only job is to <strong>invoke
+a Batch Process Job</strong>, which in turn iterates Cases and calls a
+per-record auto-launched flow.</p>
+<table>
+<thead>
+<tr>
+<th>Schedule</th>
+<th>Scheduled Flow</th>
+<th>Batch Job</th>
+<th>Per-record Flow Invoked</th>
+<th>Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Daily 14:50 UTC</strong></td>
+<td><code>Case_Scheduled_Daily_Encounters_Imported_Pending_Staging</code></td>
+<td><code>Encounters_Imported_Pending_Staging</code> (batch size
+1000)</td>
+<td><code>Case_Auto_launched_Imported_Pending_Staging</code></td>
+<td><code>Record_Processing_Status__c = "Imported - Pending Staging"</code></td>
+</tr>
+<tr>
+<td><strong>Weekly</strong></td>
+<td><code>Case_Scheduled_Weekly_Christus_Health_ZB_RO_Batch_Job</code></td>
+<td><code>Christus_Health_ZB_RO_Batch_Job</code> (batch size 200)</td>
+<td><code>RO_MASTER_Christus_Health</code></td>
+<td><code>Import_Client__c = "CHS"</code> AND ZB RT AND
+<code>Record_Processing_Status__c IN ("Staged - Pending RO Evaluation", "Requeued - Pending RO Evaluation")</code></td>
+</tr>
+<tr>
+<td><strong>Weekly</strong></td>
+<td><code>Case_Scheduled_Weekly_Honor_Health_ZB_RO_Batch_Job</code></td>
+<td><code>Honor_Health_ZB_RO_Batch_Job</code> (batch size 200)</td>
+<td><code>RO_MASTER_Honor_Health</code></td>
+<td><code>Import_Client__c = "HH"</code> AND ZB RT AND same status
+filter</td>
+</tr>
+<tr>
+<td><strong>Weekly</strong></td>
+<td><code>Case_Scheduled_Weekly_Northwestern_Medicine_ZB_RO_Batch_Job</code></td>
+<td><code>Northwestern_Medicine_ZB_RO_Batch_Job</code> (batch size
+200)</td>
+<td><code>RO_MASTER_Northwestern_Medicine</code></td>
+<td><code>Import_Client__c = "NWM"</code> AND ZB RT AND same status
+filter</td>
+</tr>
+<tr>
+<td><strong>Weekly Sun 12 AM</strong></td>
+<td><code>Account_Scheduled_Weekly_12AM_Generate_Zero_Balance_Rebill_Summaries</code></td>
+<td>(calls flow directly, not a batch job)</td>
+<td><code>Account_Auto_launched_Generate_Zero_Balance_Rebill_Summaries</code></td>
+<td>(per-Account run)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="how-the-chunk-size-works">How the chunk size works</h3>
+<p>The <code>batchSize</code> (1000 for staging, 200 for RO) is the
+number of records processed per chunk <strong>within a single
+run</strong> — not a cap on records per run. A daily/weekly run
+processes <strong>all matching records</strong>, just in chunks for
+transaction-limit safety.</p>
+<p>Once the per-record flow updates
+<code>Record_Processing_Status__c</code> away from the filter value
+(e.g., from "Imported - Pending Staging" → "Staged - Pending RO
+Evaluation"), that record is no longer picked up by subsequent runs.</p>
+<hr />
+<h2 id="4-the-two-stage-encounter-pipeline-visual">4. The two-stage
+encounter pipeline (visual)</h2>
+<p>The intake → RO evaluation flow:</p>
+<pre><code>External integration imports a Case
+  Record_Processing_Status__c = &quot;Imported - Pending Staging&quot;
+       │
+       │  Daily 14:50 UTC
+       ▼
+Encounters_Imported_Pending_Staging (batch job)
+       │  per Case →
+       ▼
+Case_Auto_launched_Imported_Pending_Staging
+   ├── Resolves AccountId by Facility Prefix
+   ├── On match: status → &quot;Staged - Pending RO Evaluation&quot;
+   └── On no match: Owner → ZB_Encounter_Staging_Error_Queue (status → error)
+       │
+       │  Weekly per client (CHS / HH / NWM)
+       ▼
+{Christus,Honor,Northwestern}_Health_ZB_RO_Batch_Job
+       │  per Case →
+       ▼
+RO_MASTER_{Christus,Honor,Northwestern}_Health
+       │  delegates to client-specific subflow →
+       ▼
+RO_&lt;CLIENT_CODE&gt; (35 of them)
+   └── Performs RO evaluation, updates Case fields, advances status</code></pre>
+<hr />
+<h2 id="5-the-ro_master-subflow-tree">5. The RO_MASTER subflow tree</h2>
+<p>The three <code>RO_MASTER_*</code> flows are dispatchers — each
+delegates to client-specific RO subflows based on the encounter's RO
+category code. The 35 active per-code subflows:</p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Subflows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>All clients</strong> (<code>RO_ALL*</code>)</td>
+<td><code>RO_ALL0009</code>, <code>RO_ALL0011</code>,
+<code>RO_ALL0013</code>, <code>RO_ALL0014</code>,
+<code>RO_ALL0015</code></td>
+</tr>
+<tr>
+<td><strong>Honor Health</strong> (<code>RO_HH*</code>)</td>
+<td><code>RO_HH0005</code>, <code>RO_HH0006</code>,
+<code>RO_HH0007</code>, <code>RO_HH0014</code>, <code>RO_HH0018</code>,
+<code>RO_HH0019</code>, <code>RO_HH0027</code>, <code>RO_HH0028</code>,
+<code>RO_HH0046</code>, <code>RO_HH0066</code>, <code>RO_HH0067</code>,
+<code>RO_HH0090</code>, <code>RO_HH0092</code></td>
+</tr>
+<tr>
+<td><strong>Northwestern Medicine</strong> (<code>RO_NWM*</code>)</td>
+<td><code>RO_NWM0007</code>, <code>RO_NWM0020</code>,
+<code>RO_NWM0022</code>, <code>RO_NWM0027</code>,
+<code>RO_NWM0028</code>, <code>RO_NWM0042</code>,
+<code>RO_NWM0045</code>, <code>RO_NWM0047</code>,
+<code>RO_NWM0052</code>, <code>RO_NWM0056</code>,
+<code>RO_NWM0060</code></td>
+</tr>
+<tr>
+<td><strong>Data prep</strong></td>
+<td><code>RO_Auto_Launched_Full_Fields_Data_Prep</code> (called before
+any RO subflow to populate context fields)</td>
+</tr>
+</tbody>
+</table>
+<p>(No <code>RO_CHS*</code> subflows — Christus Health appears to use
+only <code>RO_ALL*</code> codes today, despite having its own master
+flow.)</p>
+<hr />
+<h2 id="6-other-auto-launched-flows-utilities">6. Other auto-launched
+flows (utilities)</h2>
+<table>
+<thead>
+<tr>
+<th>Flow</th>
+<th>Purpose</th>
+<th>Invoked by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Case_Auto_launched_Get_Encounter_Guidance</code></td>
+<td>Looks up the matching Encounter Guidance record for a given Case +
+Status Code</td>
+<td>Likely called by Status Code-change automation (Case
+after-save)</td>
+</tr>
+<tr>
+<td><code>Case_Auto_Launched_Approval_Process_Rejection_Actions</code></td>
+<td>Side-effects when an Approval Process is rejected</td>
+<td>Approval Process Rejection action</td>
+</tr>
+<tr>
+<td><code>Encounter_Payor_Delete_Financial_Activity_Validation</code></td>
+<td>Validates that EP can be deleted given child FAs</td>
+<td>Encounter Payor delete trigger</td>
+</tr>
+<tr>
+<td><code>Financial_Activity_Delete_Invoiced_Validation</code></td>
+<td>Prevents deletion of invoiced FAs</td>
+<td>FA delete trigger</td>
+</tr>
+<tr>
+<td><code>Account_Auto_launched_Generate_Zero_Balance_Rebill_Summaries</code></td>
+<td>Per-Account rebill summary generation</td>
+<td>Weekly scheduled flow (see §3)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-screen-flows-user-triggered">7. Screen Flows
+(user-triggered)</h2>
+<p>Not part of the save order — invoked by users via Lightning Pages,
+Quick Actions, or buttons.</p>
+<table>
+<thead>
+<tr>
+<th>Flow</th>
+<th>Where it's invoked</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Case_Screen_Flow_Set_Auditor_Conclusion</code></td>
+<td>Quick Action / Lightning Page button on Case</td>
+</tr>
+<tr>
+<td><code>Case_Screen_Flow_Log_Follow_Up_Note</code></td>
+<td>"Log Follow Up Note" Quick Action (TH-583 controls visibility)</td>
+</tr>
+<tr>
+<td><code>Case_Screen_Flow_View_Follow_Up_Notes</code></td>
+<td>Quick Action / button on Case</td>
+</tr>
+<tr>
+<td><code>Case_Screen_Flow_Log_Financial_Activity</code></td>
+<td>"Log Financial Activity" Quick Action</td>
+</tr>
+<tr>
+<td><code>Case_Screen_Flow_Close_Zero_Balance</code></td>
+<td>Close-out Quick Action on Case</td>
+</tr>
+<tr>
+<td><code>Case_Screen_Flow_Set_Root_Cause</code></td>
+<td>Set Root Cause Quick Action</td>
+</tr>
+<tr>
+<td><code>Account_Screen_Flow_Generate_Outstanding_Rebill_List</code></td>
+<td>Quick Action on Account</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-recurring-nuance-when-order-is-unspecified">8. Recurring
+nuance: when "order is unspecified"</h2>
+<p>Two situations to be aware of:</p>
+<ol type="1">
+<li><p><strong>Multiple after-save flows on Case Update</strong> — three
+flows fire (<code>Auditor_Conclusion_Updates</code>,
+<code>Record_Owner_Updates</code>, <code>Update_Case_Fields</code>).
+Salesforce does <strong>not</strong> guarantee execution order between
+them. If two of these flows write to the same field on the same Case,
+the result is non-deterministic. <strong>Audit periodically:</strong>
+are any of them touching the same fields?</p></li>
+<li><p><strong>Validation Rules vs Before-Save Flows</strong> — VRs run
+<em>after</em> before-save flows but <em>before</em> the database write.
+So a VR can block a save even after a before-save flow has stamped
+fields. The TH-584/585/479 VRs we deployed will block invalid
+combinations regardless of what the before-save flows have set.</p></li>
+</ol>
+<hr />
+<h2 id="9-operational-reminders">9. Operational reminders</h2>
+<ul>
+<li><strong>Status field that drives everything:</strong>
+<code>Case.Record_Processing_Status__c</code>. Values include "Imported
+- Pending Staging", "Staged - Pending RO Evaluation", "Requeued -
+Pending RO Evaluation", and end states. The whole pipeline is gated by
+this field.</li>
+<li><strong>Error routing:</strong> the staging flow's no-Account-match
+path routes Cases to the <code>ZB_Encounter_Staging_Error_Queue</code>
+queue — periodically check that queue for stuck records.</li>
+<li><strong>Adding a new Honor Health / Northwestern / Christus RO
+code:</strong> create a new <code>RO_&lt;code&gt;</code> flow following
+the pattern, then add a branch in the corresponding
+<code>RO_MASTER_*</code> flow to dispatch to it.</li>
+<li><strong>Adding a new client:</strong> a new client requires (1) a
+new <code>RO_MASTER_&lt;Client&gt;</code> flow, (2) a new
+<code>BatchProcessJobDefinition</code> referencing it, (3) a new
+<code>Case_Scheduled_Weekly_&lt;Client&gt;_ZB_RO_Batch_Job</code>
+scheduled flow.</li>
+</ul>
+<hr />
+<h2 id="10-quick-reference--full-flow-inventory">10. Quick reference —
+full flow inventory</h2>
+<p><strong>Before-save (5):</strong>
+<code>Case_Before_Save_Approval_Process_Rejection_Actions</code>,
+<code>Case_Before_Save_Encounters_Manually_Created_by_Titan_Users</code>,
+<code>Encounter_Guidance_Before_Save_Set_Unique_Id</code>,
+<code>Financial_Activity_Before_Save_Set_Contingency_Rate</code>,
+<code>User_Before_Save_Set_Previous_Role</code></p>
+<p><strong>After-save (3):</strong>
+<code>Case_After_Save_Auditor_Conclusion_Updates</code>,
+<code>Case_After_Save_Record_Owner_Updates</code>,
+<code>Case_After_Save_Update_Case_Fields</code></p>
+<p><strong>Scheduled (5):</strong>
+<code>Account_Scheduled_Weekly_12AM_Generate_Zero_Balance_Rebill_Summaries</code>,
+<code>Case_Scheduled_Daily_Encounters_Imported_Pending_Staging</code>,
+<code>Case_Scheduled_Weekly_Christus_Health_ZB_RO_Batch_Job</code>,
+<code>Case_Scheduled_Weekly_Honor_Health_ZB_RO_Batch_Job</code>,
+<code>Case_Scheduled_Weekly_Northwestern_Medicine_ZB_RO_Batch_Job</code></p>
+<p><strong>Auto-launched dispatch / utility (4):</strong>
+<code>Account_Auto_launched_Generate_Zero_Balance_Rebill_Summaries</code>,
+<code>Case_Auto_Launched_Approval_Process_Rejection_Actions</code>,
+<code>Case_Auto_launched_Get_Encounter_Guidance</code>,
+<code>Case_Auto_launched_Imported_Pending_Staging</code></p>
+<p><strong>Auto-launched delete validations (2):</strong>
+<code>Encounter_Payor_Delete_Financial_Activity_Validation</code>,
+<code>Financial_Activity_Delete_Invoiced_Validation</code></p>
+<p><strong>Auto-launched RO masters (3):</strong>
+<code>RO_MASTER_Christus_Health</code>,
+<code>RO_MASTER_Honor_Health</code>,
+<code>RO_MASTER_Northwestern_Medicine</code></p>
+<p><strong>Auto-launched RO data prep (1):</strong>
+<code>RO_Auto_Launched_Full_Fields_Data_Prep</code></p>
+<p><strong>Auto-launched RO subflows (29):</strong>
+<code>RO_ALL0009</code>, <code>RO_ALL0011</code>,
+<code>RO_ALL0013</code>, <code>RO_ALL0014</code>,
+<code>RO_ALL0015</code>, <code>RO_HH0005</code>, <code>RO_HH0006</code>,
+<code>RO_HH0007</code>, <code>RO_HH0014</code>, <code>RO_HH0018</code>,
+<code>RO_HH0019</code>, <code>RO_HH0027</code>, <code>RO_HH0028</code>,
+<code>RO_HH0046</code>, <code>RO_HH0066</code>, <code>RO_HH0067</code>,
+<code>RO_HH0090</code>, <code>RO_HH0092</code>, <code>RO_NWM0007</code>,
+<code>RO_NWM0020</code>, <code>RO_NWM0022</code>,
+<code>RO_NWM0027</code>, <code>RO_NWM0028</code>,
+<code>RO_NWM0042</code>, <code>RO_NWM0045</code>,
+<code>RO_NWM0047</code>, <code>RO_NWM0052</code>,
+<code>RO_NWM0056</code>, <code>RO_NWM0060</code></p>
+<p><strong>Screen flows (7):</strong>
+<code>Account_Screen_Flow_Generate_Outstanding_Rebill_List</code>,
+<code>Case_Screen_Flow_Close_Zero_Balance</code>,
+<code>Case_Screen_Flow_Log_Financial_Activity</code>,
+<code>Case_Screen_Flow_Log_Follow_Up_Note</code>,
+<code>Case_Screen_Flow_Set_Auditor_Conclusion</code>,
+<code>Case_Screen_Flow_Set_Root_Cause</code>,
+<code>Case_Screen_Flow_View_Follow_Up_Notes</code></p>
+<p><strong>Total active: 59</strong></p>
+<hr />
+<blockquote>
+<p><strong>Maintenance tip:</strong> if you add a new flow, append it to
+§2 in the right phase row, and update the inventory in §10. If you add a
+new scheduled flow, also document its batch job (if any) and the
+per-record flow it ultimately invokes.</p>
+</blockquote>
+  </article>
+
+  <footer class="page-footer">
+    <p>Titan Health — Salesforce Release 3 documentation. Last updated 2026-05-01.</p>
+  </footer>
+
+</div>
+</body>
+</html>
