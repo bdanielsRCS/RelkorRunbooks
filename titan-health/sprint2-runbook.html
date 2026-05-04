@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Titan Health — R3 Sprint 2 + Feedback UAT Runbook</title>
+<style>
+  :root { --sf-blue:#0176d3; --sf-dark:#032d60; --sf-light:#e8f4fd; --success:#2e844a; --danger:#c23934; --warning:#fe9339; --gray-100:#f3f3f3; --gray-200:#e5e5e5; --gray-600:#706e6b; --gray-800:#3e3e3c; --radius:8px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:var(--gray-800); line-height:1.6; background:#f4f6f9; }
+  .container { max-width:1100px; margin:0 auto; padding:24px 20px; }
+  .header { background:linear-gradient(135deg,var(--sf-dark),#1565c0); color:white; padding:48px 0; margin-bottom:32px; border-radius:0 0 16px 16px; text-align:center; }
+  .header h1 { font-size:32px; font-weight:700; }
+  .header .sub { font-size:18px; opacity:0.9; margin-top:8px; }
+  .header .meta { font-size:13px; opacity:0.7; margin-top:12px; }
+  .env-badge { display:inline-block; background:#ff6f00; color:white; font-weight:700; font-size:14px; padding:6px 18px; border-radius:20px; margin-top:12px; letter-spacing:0.5px; }
+  .progress-bar { background:white; border-radius:var(--radius); padding:20px 24px; margin-bottom:32px; box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; align-items:center; gap:20px; position:sticky; top:0; z-index:100; }
+  .progress-bar .label { font-weight:700; font-size:14px; white-space:nowrap; }
+  .progress-track { flex:1; height:12px; background:var(--gray-200); border-radius:6px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--success); border-radius:6px; transition:width 0.4s; width:0%; }
+  .progress-text { font-size:14px; font-weight:600; color:var(--gray-600); min-width:80px; text-align:right; }
+  .section { background:white; border-radius:var(--radius); padding:28px; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  .section h2 { font-size:22px; color:var(--sf-dark); margin-bottom:16px; padding-bottom:8px; border-bottom:3px solid var(--sf-light); }
+  .section h2 .story-id { font-size:14px; color:var(--sf-blue); font-weight:600; margin-right:8px; }
+  .section h3 { font-size:16px; color:var(--sf-blue); margin:20px 0 10px; }
+  .section p,.section li { font-size:14px; }
+  .section ol,.section ul { padding-left:24px; margin:8px 0; }
+  .section li { margin-bottom:6px; }
+  .demo-step { border:2px solid var(--gray-200); border-radius:var(--radius); margin-bottom:16px; overflow:hidden; transition:border-color 0.3s; }
+  .demo-step.passed { border-color:var(--success); }
+  .demo-step.failed { border-color:var(--danger); }
+  .demo-step-header { display:flex; align-items:center; gap:12px; padding:16px 20px; background:var(--gray-100); cursor:pointer; user-select:none; }
+  .demo-step-header .num { width:36px; height:36px; border-radius:50%; background:var(--sf-blue); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+  .demo-step.passed .demo-step-header .num { background:var(--success); }
+  .demo-step.failed .demo-step-header .num { background:var(--danger); }
+  .demo-step-header .title { flex:1; font-weight:700; font-size:15px; }
+  .demo-step-header .status-badge { font-size:12px; font-weight:600; padding:4px 12px; border-radius:12px; }
+  .demo-step.passed .status-badge { background:#d4edda; color:var(--success); }
+  .demo-step.failed .status-badge { background:#f8d7da; color:var(--danger); }
+  .demo-step-body { padding:20px; display:none; }
+  .demo-step.open .demo-step-body { display:block; }
+  .setup, .action, .expected, .note { padding:12px 16px; margin:10px 0; border-radius:0 6px 6px 0; font-size:13px; }
+  .setup { background:#f0f4f8; border-left:4px solid var(--sf-blue); }
+  .action { background:#fff8e1; border-left:4px solid var(--warning); }
+  .expected { background:#e8f5e9; border-left:4px solid var(--success); }
+  .note { background:#fce4ec; border-left:4px solid var(--danger); }
+  .setup strong, .action strong, .expected strong, .note strong { font-weight:700; }
+  .setup strong { color:var(--sf-dark); }
+  .action strong { color:#e65100; }
+  .expected strong { color:var(--success); }
+  .note strong { color:var(--danger); }
+  .actions { display:flex; gap:8px; margin-top:16px; }
+  .btn { padding:8px 20px; border-radius:6px; border:none; font-weight:600; font-size:13px; cursor:pointer; }
+  .btn-pass { background:var(--success); color:white; }
+  .btn-fail { background:white; color:var(--danger); border:2px solid var(--danger); }
+  .btn-reset { background:white; color:var(--gray-600); border:2px solid var(--gray-200); }
+  textarea.notes { width:100%; min-height:60px; margin-top:12px; padding:8px 12px; border:1px solid var(--gray-200); border-radius:6px; font-family:inherit; font-size:13px; resize:vertical; }
+  .footer { text-align:center; padding:24px; color:var(--gray-600); font-size:12px; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
+  th { background:var(--sf-light); color:var(--sf-dark); text-align:left; padding:10px 12px; font-weight:700; font-size:12px; text-transform:uppercase; }
+  td { padding:10px 12px; border-bottom:1px solid var(--gray-200); }
+  tr:last-child td { border-bottom:none; }
+  code { background:var(--gray-100); padding:2px 6px; border-radius:3px; font-family:'SF Mono',Menlo,monospace; font-size:12px; color:var(--sf-dark); }
+  .pre-flight { background:#fff3e0; border:2px solid var(--warning); padding:20px 24px; margin-bottom:24px; border-radius:var(--radius); }
+  .pre-flight h3 { color:#e65100; margin-bottom:12px; font-size:18px; }
+  .pre-flight ul { padding-left:22px; }
+  .pre-flight li { margin-bottom:6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="container">
+    <h1>R3 Sprint 2 + Feedback UAT Runbook</h1>
+    <div class="sub">Step-through test guide for 10 stories</div>
+    <div class="env-badge">UAT (Full Copy Sandbox)</div>
+    <div class="meta">Updated 2026-05-02 &middot; Pass/fail state saves in your browser</div>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="progress-bar">
+  <div class="label">UAT Progress</div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">0 / 0</div>
+</div>
+
+<!-- PRE-FLIGHT -->
+<div class="pre-flight">
+  <h3>⚠️ Before you start</h3>
+  <ul>
+    <li><strong>Test in UAT (Full Copy)</strong> — never run these in Production</li>
+    <li><strong>Sign in as a user with both ARR and ZB access</strong> — the simplest path is a Sandbox Admin or someone in <code>ARR_All_Users</code> AND a ZB group. If you don't have a hybrid user, you'll need to switch logins between ARR and ZB tests.</li>
+    <li><strong>Have an existing ARR encounter ready</strong> — pick one for Northwestern Medicine if possible (they have ARR Split Commission enabled — needed for TH-507 cap testing)</li>
+    <li><strong>Have an existing ZB encounter ready</strong> — for the cross-LOB negative tests</li>
+    <li><strong>Click each test card to expand</strong>, follow the steps, then mark Pass or Fail. Your progress is saved in this browser.</li>
+    <li><strong>Found a bug?</strong> Click Fail and add notes — those notes save with the card.</li>
+  </ul>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-477 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-477</span> ARR-specific fields on Encounter &amp; Encounter Payor</h2>
+  <p>Foundation story. Adds 8 new fields to Encounter (Case), 3 new formula fields to Encounter Payor, plus page-layout placements per AC. Includes a helper formula <code>Has_Encounter_Payors__c</code> used by TH-583's button visibility.</p>
+
+  <div class="demo-step" data-id="TH-477-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">Verify new Encounter (Case) fields are created</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open any ARR Encounter record in UAT. Use the Lightning App's Encounter list, or paste a known ARR Case Id into the URL.</div>
+      <div class="action"><strong>Action:</strong> Click the gear icon → <em>Edit Page</em> (or just edit the record from the page directly). Verify each of the following fields is now visible/editable on the page:
+        <ul>
+          <li><code>Placement Date</code> (DateTime)</li>
+          <li><code>Secondary Payor (Imported)</code> (Text)</li>
+          <li><code>Tertiary Payor (Imported)</code> (Text)</li>
+          <li><code>Primary Payor Balance (Imported)</code> (Currency)</li>
+          <li><code>Secondary Payor Balance (Imported)</code> (Currency)</li>
+          <li><code>Tertiary Payor Balance (Imported)</code> (Currency)</li>
+          <li><code>Client Epic Work Queue</code> (Text 80)</li>
+        </ul>
+      </div>
+      <div class="expected"><strong>Expected:</strong> All 7 fields exist on the Encounter object and are visible on the ARR Lightning Record Page. Try setting values on each — they should save.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-477-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">Verify section placements on the ARR Lightning Record Page</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an ARR Encounter record.</div>
+      <div class="action"><strong>Action:</strong> Confirm each field appears in the named section on the page:
+        <ul>
+          <li><strong>Encounter Overview</strong> section: <code>Placement Date</code>, <code>Client Epic Work Queue</code></li>
+          <li><strong>Imported Payor Details</strong> section: <code>Secondary Payor (Imported)</code>, <code>Tertiary Payor (Imported)</code>, <code>Primary Payor Balance (Imported)</code>, <code>Secondary Payor Balance (Imported)</code>, <code>Tertiary Payor Balance (Imported)</code></li>
+        </ul>
+      </div>
+      <div class="expected"><strong>Expected:</strong> Each field appears in the correct section, no duplicates.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-477-3">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">3</div>
+      <div class="title">Verify Encounter Payor formula fields</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an ARR Encounter that has at least one Encounter Payor with a Payor Type set (Primary/Secondary/Tertiary). If none, navigate to the Encounter Payor record directly.</div>
+      <div class="action"><strong>Action:</strong> On the Encounter Payor record, in the <strong>Encounter Payor Details</strong> section, confirm:
+        <ul>
+          <li><code>Encounter Payor Imp. Balance</code> — pulls the right imported balance from the parent Encounter based on Payor Type (Primary → Primary_Payor_Balance_Imported, Secondary → Secondary, Tertiary → Tertiary)</li>
+          <li><code>Encounter Payor Net Balance</code> — calculates as <em>Imp Balance − Total Payments − Total Adjustments + Total Transfers</em></li>
+          <li><code>Encounter Payor Financial Class</code> — displays the Financial Class from the Account selected in the Payor Name lookup</li>
+        </ul>
+      </div>
+      <div class="expected"><strong>Expected:</strong> All three formula fields show calculated values. Change a Total Payments amount and Net Balance recalculates.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-477-4">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">4</div>
+      <div class="title">Verify Encounter Payor Related List on ARR page shows new columns</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an ARR Encounter with one or more Encounter Payors.</div>
+      <div class="action"><strong>Action:</strong> Scroll to the <strong>Encounter Payors</strong> related list. Verify the new columns are present in the correct order:
+        <ul>
+          <li><code>Encounter Payor Imp. Balance</code> appears <em>to the left of</em> Total Payments</li>
+          <li><code>Encounter Payor Net Balance</code> appears <em>after</em> Total Transfers</li>
+        </ul>
+      </div>
+      <div class="expected"><strong>Expected:</strong> Both columns visible in the related list with correct values.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-577 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-577</span> xD field cleanup</h2>
+  <p>Six proof-of-concept <code>xD_*</code> fields removed from Encounter and Encounter Payor; references stripped from ARR and EP Lightning pages.</p>
+
+  <div class="demo-step" data-id="TH-577-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">Verify xD fields are gone from Encounter</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Setup → Object Manager → Case (Encounter) → Fields &amp; Relationships.</div>
+      <div class="action"><strong>Action:</strong> Search the field list for "xD". Confirm none of these appear:
+        <ul>
+          <li><code>xD - Primary Payor Balance (Imported)</code></li>
+          <li><code>xD - Secondary Payor (Imported)</code></li>
+          <li><code>xD - Tertiary Payor (Imported)</code></li>
+          <li><code>xD - Secondary Payor Balance (Imported)</code></li>
+          <li><code>xD - Tertiary Payor Balance (Imported)</code></li>
+        </ul>
+      </div>
+      <div class="expected"><strong>Expected:</strong> No xD-prefixed fields appear in the field list.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-577-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">Verify xD fields are gone from Encounter Payor</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Setup → Object Manager → Encounter Payor → Fields &amp; Relationships.</div>
+      <div class="action"><strong>Action:</strong> Search the field list for "xD". Confirm <code>xD - Payor Balance</code> does not appear. Open an existing Encounter Payor record — the field should not appear on the page.</div>
+      <div class="expected"><strong>Expected:</strong> Field is removed. (Note: ~14,258 records had data on this field. Data sits in the Salesforce recycle bin for 15 days post-deletion if recovery is needed.)</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-581 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-581</span> Discharge Age formula update</h2>
+  <p><code>Assigned - Discharge Age</code> formula now uses <code>Placement_Date__c</code> instead of <code>Date_Assigned__c</code>, with a blank-check that returns 0 when Placement Date is empty.</p>
+
+  <div class="demo-step" data-id="TH-581-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">Calculation works with Placement Date populated</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an ARR Encounter record with a Discharge Date/Time.</div>
+      <div class="action"><strong>Action:</strong> Set <code>Placement Date</code> to 30 days after Discharge Date/Time. Save. Refresh the record. Check <code>Assigned - Discharge Age</code>.</div>
+      <div class="expected"><strong>Expected:</strong> <code>Assigned - Discharge Age</code> = 30 (or close — depending on time-of-day rounding).</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-581-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">Returns 0 when Placement Date is blank</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Same record from Test 1, or any record where you can clear Placement Date.</div>
+      <div class="action"><strong>Action:</strong> Clear the <code>Placement Date</code> field. Save. Refresh.</div>
+      <div class="expected"><strong>Expected:</strong> <code>Assigned - Discharge Age</code> = 0 (not blank, not negative).</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-583 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-583</span> Encounter Lightning page polish</h2>
+  <p>Compact layout adds <code>Titan Net Balance</code>; <code>Log Follow Up Note</code> button visibility now driven by <code>Has_Encounter_Payors__c</code>; new EP Financial Class formula.</p>
+
+  <div class="demo-step" data-id="TH-583-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">Compact layout shows Titan Net Balance</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open any Encounter (ZB or ARR).</div>
+      <div class="action"><strong>Action:</strong> Look at the highlights panel at the top of the record page (the compact layout). Confirm <code>Titan Net Balance</code> appears as one of the highlighted fields.</div>
+      <div class="expected"><strong>Expected:</strong> Titan Net Balance is visible in the top-of-page highlights area.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-583-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">Log Follow Up Note hidden when no Encounter Payors</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Find or create an Encounter that has <strong>zero</strong> Encounter Payor child records.</div>
+      <div class="action"><strong>Action:</strong> Look at the actions in the highlights panel and the action menu.</div>
+      <div class="expected"><strong>Expected:</strong> The <code>Log Follow Up Note</code> button does <em>not</em> appear.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-583-3">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">3</div>
+      <div class="title">Log Follow Up Note appears once 1+ Encounter Payor exists</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Same record from Test 2.</div>
+      <div class="action"><strong>Action:</strong> Add 1 Encounter Payor child record. Refresh the parent Encounter page.</div>
+      <div class="expected"><strong>Expected:</strong> The <code>Log Follow Up Note</code> button is now visible.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-583-4">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">4</div>
+      <div class="title">Encounter Payor Financial Class shows the Account's Financial Class</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an Encounter Payor record where the <code>Payor Name</code> lookup is set to an Account that has <code>Financial Class</code> populated.</div>
+      <div class="action"><strong>Action:</strong> Look at the new <code>Encounter Payor Financial Class</code> field in the Encounter Payor Details section.</div>
+      <div class="expected"><strong>Expected:</strong> The field displays the same value as <code>Account.Financial Class</code> on the linked Payor.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-584 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-584</span> ARR Status Codes + Encounter Guidance</h2>
+  <p>Two new ARR Status Codes (<code>ARR - Offshore Adjustment Review</code>, <code>ARR - Sent to Coding</code>) plus Encounter Guidance records that drive routing.</p>
+
+  <div class="demo-step" data-id="TH-584-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">New Status Codes selectable on ARR Encounter</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an ARR Encounter.</div>
+      <div class="action"><strong>Action:</strong> Edit the <code>Status Code</code> field. Type "ARR - Off" — confirm <code>ARR - Offshore Adjustment Review</code> appears as an option. Clear and type "ARR - Sent" — confirm <code>ARR - Sent to Coding</code> appears.</div>
+      <div class="expected"><strong>Expected:</strong> Both new values are selectable in the picker.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-584-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">Encounter Guidance records exist for the new statuses</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Navigate to the Encounter Guidance object list view (App Launcher → search "Encounter Guidance").</div>
+      <div class="action"><strong>Action:</strong> Filter or search for the two new records. Open each and confirm the values:
+        <table>
+          <thead><tr><th>Status Code</th><th>Status Category</th><th>Days to Follow Up</th><th>Expected Owner</th></tr></thead>
+          <tbody>
+            <tr><td>ARR - Offshore Adjustment Review</td><td>Follow Up</td><td>5</td><td>ARR_Offshore_Adjustment_Review</td></tr>
+            <tr><td>ARR - Sent to Coding</td><td>Follow Up</td><td>7</td><td>Collections</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="expected"><strong>Expected:</strong> Both records exist with the values shown, on the ARR Encounter Guidance Record Type.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-584-3">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">3</div>
+      <div class="title">Status Code change triggers correct Next Owner</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an ARR Encounter (preferably one you can change Owner on without disrupting real workflow).</div>
+      <div class="action"><strong>Action:</strong> Change the Status Code to <code>ARR - Sent to Coding</code> (via Path or Edit), save. Wait a moment. Refresh.</div>
+      <div class="expected"><strong>Expected:</strong> The Encounter's Owner changes to a Collections-related queue/user (per the downstream routing automation that reads the Encounter Guidance record). <em>If routing automation is not yet configured to read this EG record, that's a separate item — note it in the Notes box below.</em></div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-585 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-585</span> Adjustment Reasons (ARR-only)</h2>
+  <p>Three new Adjustment Codes added to <code>Adjustment_Codes_GVS</code>: <code>Denial - Max Units Exceeded (MUE)</code>, <code>Denial - Bundling</code>, <code>Contractual Adjustment - Contractual Variance</code>.</p>
+
+  <div class="demo-step" data-id="TH-585-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">New Adjustment Codes selectable on ARR Encounter</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an ARR Encounter.</div>
+      <div class="action"><strong>Action:</strong> Edit <code>Adjustment Codes</code>. Confirm all 3 new values appear as options.</div>
+      <div class="expected"><strong>Expected:</strong> All 3 values selectable. Save and confirm the value persists.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-584 / TH-585 follow-up — RT enforcement -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-584/585 follow-up</span> ARR-only values strictly restricted to ARR Record Types</h2>
+  <p>3 Validation Rules block ARR-only Status Codes / Adjustment Codes from being saved on non-ARR Cases, Encounter Guidance records, and Financial Activities.</p>
+
+  <div class="demo-step" data-id="RT-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">ARR-only Status Code is blocked on a ZB Encounter</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open a ZB Encounter.</div>
+      <div class="action"><strong>Action:</strong> Edit the Status Code. Try to select <code>ARR - Sent to Coding</code> or <code>ARR - Offshore Adjustment Review</code>.</div>
+      <div class="expected"><strong>Expected:</strong> Either (a) the ARR values don't appear in the picker on a ZB record, or (b) attempting to save with one of those values shows an error: <em>"This Status Code or Adjustment Code is only valid for ARR (Accounts Receivable Recovery) encounters."</em></div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="RT-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">ARR-only Adjustment Code is blocked on a ZB Encounter</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Same ZB Encounter.</div>
+      <div class="action"><strong>Action:</strong> Edit the Adjustment Codes. Try <code>Denial - Bundling</code> (or any ARR-only code).</div>
+      <div class="expected"><strong>Expected:</strong> Blocked — value not selectable, or save error.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="RT-3">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">3</div>
+      <div class="title">ARR-only Adjustment Code is blocked on a Financial Activity whose parent is ZB</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Find a Financial Activity whose parent Encounter (via Encounter Payor) is a <strong>ZB</strong> encounter. Or create a test FA on a ZB encounter's Encounter Payor.</div>
+      <div class="action"><strong>Action:</strong> Try to set <code>Adjustment Codes</code> = <code>Denial - Bundling</code> (or another ARR-only code) and save.</div>
+      <div class="expected"><strong>Expected:</strong> Save fails with the message: <em>"This Adjustment Code is only valid when the parent Encounter is ARR (Accounts Receivable Recovery)."</em></div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="RT-4">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">4</div>
+      <div class="title">ARR-only values save successfully on ARR records (positive test)</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> An ARR Encounter.</div>
+      <div class="action"><strong>Action:</strong> Set Status Code = <code>ARR - Sent to Coding</code>, set Adjustment Codes = <code>Denial - Bundling</code>, save.</div>
+      <div class="expected"><strong>Expected:</strong> Saves cleanly. No validation rule fires.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-586 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-586</span> Queue + List View: ARR - Offshore Adjustment Review</h2>
+  <p>New Queue and matching List View. Queue members = <code>ARR_Supervisors_NWM</code> public group.</p>
+
+  <div class="demo-step" data-id="TH-586-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">Queue exists with the right members</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Setup → Queues.</div>
+      <div class="action"><strong>Action:</strong> Search for <code>ARR - Offshore Adjustment Review</code>. Open it. Verify:
+        <ul>
+          <li><strong>Queue Members</strong> includes the public group <code>ARR Supervisors NWM</code> (developer name <code>ARR_Supervisors_NWM</code>)</li>
+          <li><strong>Supported Objects</strong> includes <code>Case</code></li>
+        </ul>
+      </div>
+      <div class="expected"><strong>Expected:</strong> Queue exists, has the correct members, and is configured for Case.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-586-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">List View visible to ARR Supervisors NWM</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Sign in as a member of the <code>ARR_Supervisors_NWM</code> group. Open the Encounter (Case) tab.</div>
+      <div class="action"><strong>Action:</strong> Open the list view picker. Confirm <code>ARR - Offshore Adjustment Review</code> is in the list.</div>
+      <div class="expected"><strong>Expected:</strong> List view appears for that user.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-586-3">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">3</div>
+      <div class="title">List View has the right columns and filters</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open the <code>ARR - Offshore Adjustment Review</code> list view.</div>
+      <div class="action"><strong>Action:</strong> Verify columns: <code>Patient Account Number</code>, <code>Client</code>, <code>Owner Name</code>, <code>Status Code</code>, <code>Last Status Code Update Date</code>, <code>Last Status Code Changed By</code>, <code>Titan Net Balance</code>. Verify the filter shows only ARR + Titan Ready to Work + Status = ARR - Offshore Adjustment Review.</div>
+      <div class="expected"><strong>Expected:</strong> All 7 columns and 3 filters match the spec.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-479 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-479</span> ARR Root Causes — LOB-restricted</h2>
+  <p>Validation rule restricts <code>Primary Root Cause</code> values by LOB. ARR-only values block on ZB Cases; ZB-only values block on ARR Cases; shared values save on both.</p>
+
+  <div class="demo-step" data-id="TH-479-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">ARR-only Root Cause blocked on ZB Encounter</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open a ZB Encounter.</div>
+      <div class="action"><strong>Action:</strong> Try to set <code>Primary Root Cause</code> = <code>Pending - Credit Balance</code> (or any of: <code>Pending - Claim, Reconsideration or Appeal in Process</code>, <code>Pending - Contractual Adjustment Not Posted</code>, <code>Pending - Downcoding/Downgrade</code>, <code>Transfer - Patient Responsibility</code>). Save.</div>
+      <div class="expected"><strong>Expected:</strong> Save fails. Either the value is not selectable, or you see the error: <em>"This Primary Root Cause is only valid for the matching Line of Business..."</em></div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-479-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">ZB-only Root Cause blocked on ARR Encounter</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Open an ARR Encounter.</div>
+      <div class="action"><strong>Action:</strong> Try Primary Root Cause = <code>Recalled - Claim Removed from Titan Assignment</code> or <code>Pending - Corrected Claim Required</code>. Save.</div>
+      <div class="expected"><strong>Expected:</strong> Save fails (same as Test 1).</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-479-3">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">3</div>
+      <div class="title">Shared Root Cause saves on either record type</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Same ZB and ARR Encounters.</div>
+      <div class="action"><strong>Action:</strong> Try Primary Root Cause = <code>Denied - Coding</code> on the ZB Encounter; save. Then on the ARR Encounter, try <code>Pending - Edit</code>; save.</div>
+      <div class="expected"><strong>Expected:</strong> Both saves succeed. Shared values are not restricted.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-479-4">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">4</div>
+      <div class="title">ARR-only Root Cause saves on ARR Encounter (positive test)</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> ARR Encounter.</div>
+      <div class="action"><strong>Action:</strong> Set Primary Root Cause = <code>Pending - Credit Balance</code>. Save.</div>
+      <div class="expected"><strong>Expected:</strong> Saves cleanly.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-496 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-496</span> Encounter Guidance records for ARR Status Codes</h2>
+  <p>Already-loaded records (via prior Kicksaw staging job) drive Next Owner population on ARR Encounters when the Status Code changes.</p>
+
+  <div class="demo-step" data-id="TH-496-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">All 25 ARR Encounter Guidance records exist</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> App Launcher → Encounter Guidance.</div>
+      <div class="action"><strong>Action:</strong> Filter list view by Record Type = <code>ARR Encounter Guidance</code>. Count the records.</div>
+      <div class="expected"><strong>Expected:</strong> 25 ARR records exist (23 from staging + 2 from TH-584 — Offshore Adjustment Review and Sent to Coding).</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-496-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">Status Code change populates Next Owner correctly</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> An ARR Encounter you can manipulate.</div>
+      <div class="action"><strong>Action:</strong> Change Status Code to <code>ARR - Coding Review</code> (or any other ARR Status Code with an Encounter Guidance record routing to a queue). Save. Refresh.</div>
+      <div class="expected"><strong>Expected:</strong> Encounter's Owner changes to the queue/user defined in the matching Encounter Guidance record. <em>If the routing automation isn't running, note it — it would be downstream of this story.</em></div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TH-507 -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="section">
+  <h2><span class="story-id">TH-507</span> ARR contingency-rate cap enforcement</h2>
+  <p>Existing Flow already stamps rate. Extended Flow now caps total Invoice Line Item Amount across Payment FAs at the Client-level Cap (only when Split Commission is enabled). FLS restricts Contingency Rate &amp; ILI to Supervisors+.</p>
+
+  <div class="note"><strong>Best test client:</strong> <code>Northwestern Medicine</code> in UAT — has Split Commission enabled with Cap_1 = $3,000, Cap_2 = $5,000, Rate_1 = 6%, Rate_2 = 9%, Days Threshold = 90.</div>
+
+  <div class="demo-step" data-id="TH-507-1">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">1</div>
+      <div class="title">First Payment FA: rate stamps from Account configuration</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Find an ARR Encounter for Northwestern Medicine where (Date Assigned − Discharge Date) ≤ 90. Confirm no Payment FAs exist yet (or pick a fresh test encounter).</div>
+      <div class="action"><strong>Action:</strong> Create a new Financial Activity on this encounter:
+        <ul>
+          <li>Transaction Type = <code>Payment</code></li>
+          <li>Qualified Amount = $1,000</li>
+          <li>Save</li>
+        </ul>
+      </div>
+      <div class="expected"><strong>Expected:</strong>
+        <ul>
+          <li><code>Contingency Rate</code> = <strong>6%</strong> (Rate_1, since days ≤ 90)</li>
+          <li><code>Invoice Line Item Amount</code> = <strong>$60.00</strong> (6% × $1,000)</li>
+        </ul>
+      </div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-507-2">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">2</div>
+      <div class="title">Cap enforcement: rate adjusts down on FA that would exceed Cap</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Same encounter from Test 1. Create more Payment FAs to push the cumulative ILI close to Cap_1 ($3,000). For example, make several FAs at Qualified Amount = $10,000 (each ILI = $600 at 6%) until total ILI is just under $3,000.</div>
+      <div class="action"><strong>Action:</strong> Create one more Payment FA with a Qualified Amount that would, at the natural 6% rate, push total ILI over $3,000.</div>
+      <div class="expected"><strong>Expected:</strong> The new FA's <code>Contingency Rate</code> is <strong>adjusted DOWN</strong> so that its <code>Invoice Line Item Amount</code> equals exactly <em>(Cap_1 − sum of existing Payment ILIs)</em>. Total ILI across all Payment FAs = $3,000 exactly.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-507-3">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">3</div>
+      <div class="title">Cap reached: subsequent FA gets rate = 0</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Same encounter from Test 2 — total ILI now = Cap.</div>
+      <div class="action"><strong>Action:</strong> Create one more Payment FA with any Qualified Amount.</div>
+      <div class="expected"><strong>Expected:</strong> <code>Contingency Rate</code> = <strong>0</strong>, <code>Invoice Line Item Amount</code> = <strong>$0.00</strong>.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+
+  <div class="demo-step" data-id="TH-507-4">
+    <div class="demo-step-header" onclick="toggleStep(this)">
+      <div class="num">4</div>
+      <div class="title">Field visibility — Contingency Rate &amp; ILI Amount visible only to Supervisors+</div>
+      <div class="status-badge">Not started</div>
+    </div>
+    <div class="demo-step-body">
+      <div class="setup"><strong>Setup:</strong> Sign in as a non-supervisor user (Auditor or Collector level).</div>
+      <div class="action"><strong>Action:</strong> Open an FA record. Look for <code>Contingency Rate</code> and <code>Invoice Line Item Amount</code>.</div>
+      <div class="expected"><strong>Expected:</strong> Both fields are NOT visible to this user. Then sign in as a Supervisor user and confirm both fields ARE visible.</div>
+      <div class="actions">
+        <button class="btn btn-pass" onclick="markStep(this,'pass')">Pass</button>
+        <button class="btn btn-fail" onclick="markStep(this,'fail')">Fail</button>
+        <button class="btn btn-reset" onclick="resetStep(this)">Reset</button>
+      </div>
+      <textarea class="notes" placeholder="Notes (optional)" oninput="saveNotes(this)"></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- SIGN OFF -->
+<div class="section">
+  <h2>Sign-off</h2>
+  <p>When all tests above are marked Pass (or Fail with notes), the Sprint 2 + Feedback work is ready for production cutover. Outstanding fail items become bugs to triage.</p>
+  <table>
+    <thead><tr><th>Approver</th><th>Role</th><th>Status</th><th>Date</th></tr></thead>
+    <tbody>
+      <tr><td>Jon</td><td>UAT Lead</td><td><em>Pending</em></td><td></td></tr>
+      <tr><td>John Conway</td><td>Business Owner</td><td><em>Pending</em></td><td></td></tr>
+      <tr><td>Al Reveles</td><td>Salesforce Admin</td><td><em>Pending</em></td><td></td></tr>
+      <tr><td>Bryant Daniels</td><td>Tech Lead</td><td><em>Pending</em></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+</div>
+
+<div class="footer">Titan Health — Sprint 2 + Feedback Runbook · Updated 2026-05-02</div>
+
+<script>
+const STORAGE_KEY = 'titan-sprint2-runbook-state';
+function getState() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { return {}; } }
+function setState(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+function toggleStep(headerEl) {
+  const step = headerEl.parentElement;
+  step.classList.toggle('open');
+}
+
+function markStep(btnEl, result) {
+  const step = btnEl.closest('.demo-step');
+  const id = step.dataset.id;
+  step.classList.remove('passed','failed');
+  if (result === 'pass') step.classList.add('passed');
+  if (result === 'fail') step.classList.add('failed');
+  const badge = step.querySelector('.status-badge');
+  badge.textContent = result === 'pass' ? '✓ Passed' : '✗ Failed';
+  const state = getState();
+  state[id] = state[id] || {};
+  state[id].status = result;
+  setState(state);
+  updateProgress();
+}
+
+function resetStep(btnEl) {
+  const step = btnEl.closest('.demo-step');
+  const id = step.dataset.id;
+  step.classList.remove('passed','failed');
+  const badge = step.querySelector('.status-badge');
+  badge.textContent = 'Not started';
+  const state = getState();
+  delete state[id];
+  setState(state);
+  updateProgress();
+}
+
+function saveNotes(textareaEl) {
+  const step = textareaEl.closest('.demo-step');
+  const id = step.dataset.id;
+  const state = getState();
+  state[id] = state[id] || {};
+  state[id].notes = textareaEl.value;
+  setState(state);
+}
+
+function updateProgress() {
+  const all = document.querySelectorAll('.demo-step');
+  const passed = document.querySelectorAll('.demo-step.passed').length;
+  const total = all.length;
+  const pct = total ? Math.round((passed / total) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = passed + ' / ' + total;
+}
+
+// On load: rehydrate state
+window.addEventListener('DOMContentLoaded', function() {
+  const state = getState();
+  document.querySelectorAll('.demo-step').forEach(function(step) {
+    const id = step.dataset.id;
+    const s = state[id];
+    if (!s) return;
+    if (s.status === 'pass') { step.classList.add('passed'); step.querySelector('.status-badge').textContent = '✓ Passed'; }
+    if (s.status === 'fail') { step.classList.add('failed'); step.querySelector('.status-badge').textContent = '✗ Failed'; }
+    if (s.notes) { const ta = step.querySelector('.notes'); if (ta) ta.value = s.notes; }
+  });
+  updateProgress();
+});
+</script>
+
+</body>
+</html>
